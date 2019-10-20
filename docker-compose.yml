@@ -1,0 +1,36 @@
+version: '3'
+
+networks:
+  scc311coursework:
+
+services:
+  server:
+    container_name: server
+    image: harbor.scc.lancs.ac.uk/$USERNAME/server:latest
+    restart: unless-stopped
+    build:
+      context: server
+    networks:
+      - scc311coursework
+    ports:
+      - 8080:8080
+
+  load-balancer:
+    container_name: load-balancer
+    image: harbor.scc.lancs.ac.uk/$USERNAME/load-balancer:latest
+    restart: unless-stopped
+    build:
+      context: load-balancer
+    networks:
+      - scc311coursework
+    ports:
+      - 8080:9090
+  
+  redis:
+    container_name: redis
+    image: redis:5.0.6
+    restart: unless-stopped
+    networks:
+      - scc311coursework
+    ports:
+      - 6379:6379
