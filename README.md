@@ -5,7 +5,7 @@
 * `vagrant ssh`
 
 ## Docker: Build & Run
-* Running without optional arguments will build / launch all services
+* Running without optional arguments will build / launclsh all services
 * `docker-compose build` optional `server` | `load-balancer`
 * `docker-compose up` optional `server` | `load-balancer`
 
@@ -21,3 +21,8 @@
 * `curl -Lvk -X POST -H "Header: Value" localhost:8080/api/auctions`
 * Passing data via the -d flag
 * `curl -Lvk -X POST -d "name=Motorbike&startBid=0.99" localhost:8080/api/auction`
+
+## Useful stuff
+* General compile: `javac -d ../out/ *.java`
+* Compile client/src/: `javac -cp "../libs/okhttp-4.2.2.jar" -d ../out/ *.java`
+* Run client/out/: `java -cp "../libs/okhttp-4.2.2.jar" Server`

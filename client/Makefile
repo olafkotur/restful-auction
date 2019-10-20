@@ -8,7 +8,7 @@ OKHTTP_VERSION ?= 4.2.2
 #
 SRC_DIR ?= $(CURDIR)/src
 OUT_DIR ?= $(CURDIR)/out
-LIB_DIR ?= $(CURDIR)/libs
+LIB_DIR ?= $(CURDIR)/lib
 
 #
 # Tools
