@@ -1,4 +1,6 @@
-client/out/*
-server/out/*
+client/out/*.class
+server/out/*.class
 load-balancer/out/*
 .vscode/
+client/src/*.DS_Store
+server/src/*.DS_Store

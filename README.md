@@ -25,4 +25,4 @@
 ## Useful stuff
 * General compile: `javac -d ../out/ *.java`
 * Compile client/src/: `javac -cp "../libs/okhttp-4.2.2.jar" -d ../out/ *.java`
-* Run client/out/: `java -cp "../libs/okhttp-4.2.2.jar" Server`
+* Run client/out/: `java -cp "../libs/okhttp-4.2.2.jar" Client`

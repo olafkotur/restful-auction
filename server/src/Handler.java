@@ -5,6 +5,8 @@ import java.net.URI;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
+import org.json.JSONObject;
+
 class Handler implements HttpHandler {
   public void handle(HttpExchange ex) throws IOException {
 
@@ -23,13 +25,12 @@ class Handler implements HttpHandler {
   }
 
   public String getResponse(String uri) {
-    String response = "";
-    switch(uri) {
-      case "/api/auctions":
-        System.out.println("Auctions");
-        response = "auctions";
-        break;
+    JSONObject res = new JSONObject();
+    if (uri.contains("/api/auctions")) {
+      res.put("code", 1);
+      res.put("status", "success");
+      res.put("message", "It's working! :)");
     }
-    return response;
+    return res.toString();
   }
 }
