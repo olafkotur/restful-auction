@@ -26,3 +26,9 @@
 * General compile: `javac -d ../out/ *.java`
 * Compile client/src/: `javac -cp "../libs/okhttp-4.2.2.jar" -d ../out/ *.java`
 * Run client/out/: `java -cp "../libs/okhttp-4.2.2.jar" Client`
+
+javac -cp /out/client:/./libs/okhttp-4.2.2.jar:/./libs/annotations-13.0.jar:/./libs/kotlin-stdlib-1.3.50:/./libs/kotlin-stdlib-common-1.3.50.jar:/./libs/okio-2.4.0.jar -d ./out/ -sourcepath ./src/*
+
+java -cp /out/client:/./libs/okhttp-4.2.2.jar:/./libs/annotations-13.0.jar:/./libs/kotlin-stdlib-1.3.50:/./libs/kotlin-stdlib-common-1.3.50.jar:/./libs/okio-2.4.0.jar Client
+
+java -cp /out/client:/../libs/okhttp-4.2.2.jar:/../libs/annotations-13.0.jar:/../libs/kotlin-stdlib-1.3.50:/../libs/kotlin-stdlib-common-1.3.50.jar:/../libs/okio-2.4.0.jar Client
