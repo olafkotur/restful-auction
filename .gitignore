@@ -4,3 +4,5 @@ load-balancer/out/*
 .vscode/
 client/src/*.DS_Store
 server/src/*.DS_Store
+client/.DS_Store
+server/libs/.DS_Store

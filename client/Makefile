@@ -14,7 +14,7 @@ LIB_DIR ?= $(CURDIR)/lib
 # Tools
 #
 JAVAC  ?= javac
-JFLAGS ?= -g -d $(OUT_DIR) -cp $(OUT_DIR) -sourcepath $(SRC_DIR) 
+JFLAGS ?= -g -d $(OUT_DIR) -cp "$(LIB_DIR)/*" -sourcepath $(SRC_DIR)
 DOCKER ?= docker
 
 #
