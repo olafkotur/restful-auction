@@ -1,7 +1,23 @@
-# SCC.311 Distributed Systems Coursework 2019 Starterkit
+# SCC.311 Distributed Systems Coursework
 
-This repository contains starter files for the completion of the SCC.311 coursework in 2019.  
+## Vagrant: Setup
+* `vagrant up`
+* `vagrant ssh`
 
-For more information on getting started on using this repository and for details on how to complete this coursework for submission, please refer to the companion website: https://www.x311.scc.lancs.ac.uk
+## Docker: Build & Run
+* Running without optional arguments will build / launch all services
+* `docker-compose build` optional `server` | `load-balancer`
+* `docker-compose up` optional `server` | `load-balancer`
 
-_Good luck!_
+## Docker: Deployment
+* `docker login -u "$USERNAME" -p "$PASSWORD" harbor.scc.lancs.ac.uk`
+* `docker tag my-server harbor.scc.lancs.ac.uk/$USERNAME/server:latest`
+* `docker push harbor.scc.lancs.ac.uk/$USERNAME/server:latest`
+
+## Testing HTTP responses
+* Simple request to uri
+* `curl -Lvk localhost:8080/api/auctions`
+* Passing additonal headers | specifying HTTP request methods
+* `curl -Lvk -X POST -H "Header: Value" localhost:8080/api/auctions`
+* Passing data via the -d flag
+* `curl -Lvk -X POST -d "name=Motorbike&startBid=0.99" localhost:8080/api/auction`

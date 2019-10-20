@@ -1,8 +1,4 @@
-*.log
 client/out/*
 server/out/*
 load-balancer/out/*
-*.jar
-.vagrant
-.env
 .vscode/
