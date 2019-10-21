@@ -28,6 +28,7 @@ public class Server {
     String uri = ex.getRequestURI().toString();
     String response = getResponse(uri);
 
+    ex.getResponseHeaders().set("Content-Type", "application/json;");
     ex.sendResponseHeaders(200, response.length());
     OutputStream os = ex.getResponseBody();
     os.write(response.getBytes());
