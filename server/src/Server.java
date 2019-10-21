@@ -14,7 +14,7 @@ public class Server {
 
   static final int PORT = 8080;
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) throws IOException {
     HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
     server.createContext("/api", Server::handleRequest);
     server.start();

@@ -4,18 +4,22 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class Client {
-  public static void main(String[] args) throws Exception {
-    System.out.println("Making requests...");
-
+  public static void main(String[] args) throws IOException {
     // Test URLs
     String[] testURLs = {
       "http://localhost:8080/api/auctions",
     };
 
-    // Run tests
+    runTests(testURLs);
+  }
+
+  public static void runTests(String[] testURLs) throws IOException {
+    System.out.println("Attempting to run auction tests...");
+
     for (int i = 0; i < testURLs.length; i++) {
       String res = sendRequest(testURLs[i]);
-      System.out.println(res);
+      System.out.println("\nRequested: " + testURLs[i]);
+      System.out.println("Response: " + res);
     }
   }
 
