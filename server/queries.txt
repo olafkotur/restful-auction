@@ -1,0 +1,1 @@
+"INSERT INTO auctions(id, name, firstBid, sellerId, status) VALUES (?, ?, ?, ?, ?)"
