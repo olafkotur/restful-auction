@@ -24,7 +24,8 @@ func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/api/auctions", getAuctions).Methods("GET")
 	router.HandleFunc("/api/auction/{id}", getAuction).Methods("GET")
-	router.HandleFunc("/api/user", user)
+	router.HandleFunc("/api/auction/{id}", updateAuction).Methods("POST")
+	router.HandleFunc("/api/auction/{id}", deleteAuction).Methods("DELETE")
 
 	fmt.Printf("Listening on port %s...\n\n", SERVER_PORT)
 	http.ListenAndServe(":"+SERVER_PORT, router)

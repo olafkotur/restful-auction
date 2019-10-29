@@ -9,47 +9,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func auctions(writer http.ResponseWriter, request *http.Request) {
-	db, _ := sql.Open("sqlite3", "./auction.db")
-	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS auctions (id INTEGER PRIMARY KEY, name TEXT, firstBid REAL, sellerId INTEGER, status TEXT)")
-	statement.Exec()
-
-	var response []byte
-	uri := request.URL.String()
-
-	if uri == "/api/auctions" {
-		response = GetAuctionsResponse(db)
-	}
-
-	db.Close()
-
-	writer.Header().Set("Content-Type", "application/json")
-	writer.Write(response)
-	printRequestInfo(request)
-}
-
-func auction(writer http.ResponseWriter, request *http.Request) {
-	db, _ := sql.Open("sqlite3", "./auction.db")
-	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS auctions (id INTEGER PRIMARY KEY, name TEXT, firstBid REAL, sellerId INTEGER, status TEXT)")
-	statement.Exec()
-
-	var response []byte
-
-	response = []byte("yeet")
-
-	writer.Header().Set("Content-Type", "application/json")
-	writer.Write(response)
-	printRequestInfo(request)
-}
-
-func user(writer http.ResponseWriter, request *http.Request) {
-	var response []byte
-
-	writer.Header().Set("Content-Type", "application/json")
-	writer.Write(response)
-	printRequestInfo(request)
-}
-
 func getAuctions(writer http.ResponseWriter, request *http.Request) {
 	db, _ := sql.Open("sqlite3", "./auction.db")
 	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS auctions (id INTEGER PRIMARY KEY, name TEXT, firstBid REAL, sellerId INTEGER, status TEXT)")
@@ -120,4 +79,38 @@ func getAuction(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Write(response)
 	printRequestInfo(request)
+}
+
+func deleteAuction(writer http.ResponseWriter, request *http.Request) {
+	db, _ := sql.Open("sqlite3", "./auction.db")
+	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS auctions (id INTEGER PRIMARY KEY, name TEXT, firstBid REAL, sellerId INTEGER, status TEXT)")
+	statement.Exec()
+
+	uri := request.URL.String()
+	rId := strings.Split(uri, "/api/auction/")[1]
+
+	type Response struct {
+		Status string `json:"status"`
+	}
+
+	var res Response
+	statement, _ = db.Prepare("DELETE FROM auctions WHERE id=?")
+	r, _ := statement.Exec(rId)
+
+	// Check if any rows have been deleted
+	rowsAffected, _ := r.RowsAffected()
+	if rowsAffected > 0 {
+		res = Response{"success"}
+	} else {
+		res = Response{"invalid auctionId"}
+	}
+
+	response, _ := json.Marshal(res)
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Write(response)
+	printRequestInfo(request)
+}
+
+func updateAuction(writer http.ResponseWriter, request *http.Request) {
+
 }
