@@ -1,19 +1,14 @@
 package main
 
 import (
-	"database/sql"
-	"encoding/json"
 	"net/http"
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// Fetches all auctions from the db: [{}, {}...]
 func getAuctions(writer http.ResponseWriter, request *http.Request) {
-	db, _ := sql.Open("sqlite3", "./auction.db")
-	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS auctions (id INTEGER PRIMARY KEY, name TEXT, firstBid REAL, sellerId INTEGER, status TEXT)")
-	statement.Exec()
-
 	type ResponseItem struct {
 		Id       int     `json:"id"`
 		Name     string  `json:"name"`
@@ -21,38 +16,29 @@ func getAuctions(writer http.ResponseWriter, request *http.Request) {
 		SellerId int     `json:"sellerId"`
 		Status   string  `json:"status"`
 	}
-
 	type Response []ResponseItem
 
-	rows, _ := db.Query("SELECT * FROM auctions")
+	var res Response
 	var id, sellerId int
 	var firstBid float32
 	var name, status string
-	var res Response
 
-	// Traverse each row, adds data to the res array
+	// Fetch db and traverse each row adding to the response array
+	rows, _ := db().Query("SELECT * FROM auctions")
 	for rows.Next() {
 		rows.Scan(&id, &name, &firstBid, &sellerId, &status)
 		object := ResponseItem{id, name, firstBid, sellerId, status}
 		res = append(res, object)
 	}
+	db().Close()
 	rows.Close()
-	db.Close()
 
-	response, _ := json.Marshal(res)
-	writer.Header().Set("Content-Type", "application/json")
-	writer.Write(response)
+	sendResponse(res, writer)
 	printRequestInfo(request)
 }
 
-func getAuction(writer http.ResponseWriter, request *http.Request) {
-	db, _ := sql.Open("sqlite3", "./auction.db")
-	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS auctions (id INTEGER PRIMARY KEY, name TEXT, firstBid REAL, sellerId INTEGER, status TEXT)")
-	statement.Exec()
-
-	uri := request.URL.String()
-	rId := strings.Split(uri, "/api/auction/")[1]
-
+// Adds an auction to the db with given auction details
+func addAuction(writer http.ResponseWriter, request *http.Request) {
 	type Response struct {
 		Id       int     `json:"id"`
 		Name     string  `json:"name"`
@@ -61,43 +47,72 @@ func getAuction(writer http.ResponseWriter, request *http.Request) {
 		Status   string  `json:"status"`
 	}
 
-	rows, _ := db.Query("SELECT * FROM auctions WHERE id=" + rId)
+	// Extract data from the POST
+	request.ParseForm()
+	id := request.Form.Get("id")
+	name := request.Form.Get("name")
+	firstBid := request.Form.Get("firstBid")
+	sellerId := request.Form.Get("sellerId")
+	status := request.Form.Get("status")
+
+	// Add a new auction to the db with given schema
+	statement, _ := db().Prepare("INSERT INTO auctions(id, name, firstBid, sellerId, status) values(?, ?, ?, ?, ?)")
+	statement.Exec(id, name, firstBid, sellerId, status)
+
+	var res Response
+	sendResponse(res, writer)
+	printRequestInfo(request)
+}
+
+// Fetches a single auction that matches given auctionId: {}
+func getAuction(writer http.ResponseWriter, request *http.Request) {
+	type Response struct {
+		Id       int     `json:"id"`
+		Name     string  `json:"name"`
+		FirstBid float32 `json:"firstbid"`
+		SellerId int     `json:"sellerId"`
+		Status   string  `json:"status"`
+	}
+
+	var res Response
 	var id, sellerId int
 	var firstBid float32
 	var name, status string
-	var res Response
 
-	// Traverse each row, and set the response
+	// Get auctionId from path
+	uri := request.URL.String()
+	auctionId := strings.Split(uri, "/api/auction/")[1]
+
+	// Fetch db and traverse each row setting the response
+	rows, _ := db().Query("SELECT * FROM auctions WHERE id=" + auctionId)
 	for rows.Next() {
 		rows.Scan(&id, &name, &firstBid, &sellerId, &status)
 		res = Response{id, name, firstBid, sellerId, status}
 	}
+	db().Close()
 	rows.Close()
-	db.Close()
 
-	response, _ := json.Marshal(res)
-	writer.Header().Set("Content-Type", "application/json")
-	writer.Write(response)
+	sendResponse(res, writer)
 	printRequestInfo(request)
 }
 
+// Deletes a signle auction that matches given auctionId: {}
 func deleteAuction(writer http.ResponseWriter, request *http.Request) {
-	db, _ := sql.Open("sqlite3", "./auction.db")
-	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS auctions (id INTEGER PRIMARY KEY, name TEXT, firstBid REAL, sellerId INTEGER, status TEXT)")
-	statement.Exec()
-
-	uri := request.URL.String()
-	rId := strings.Split(uri, "/api/auction/")[1]
-
 	type Response struct {
 		Status string `json:"status"`
 	}
 
 	var res Response
-	statement, _ = db.Prepare("DELETE FROM auctions WHERE id=?")
-	r, _ := statement.Exec(rId)
 
-	// Check if any rows have been deleted
+	// Get auctionId from path
+	uri := request.URL.String()
+	auctionId := strings.Split(uri, "/api/auction/")[1]
+
+	// Delete auction by id from the db
+	statement, _ := db().Prepare("DELETE FROM auctions WHERE id=?")
+	r, _ := statement.Exec(auctionId)
+
+	// Check if any rows have been deleted and set the response
 	rowsAffected, _ := r.RowsAffected()
 	if rowsAffected > 0 {
 		res = Response{"success"}
@@ -105,12 +120,11 @@ func deleteAuction(writer http.ResponseWriter, request *http.Request) {
 		res = Response{"invalid auctionId"}
 	}
 
-	response, _ := json.Marshal(res)
-	writer.Header().Set("Content-Type", "application/json")
-	writer.Write(response)
+	sendResponse(res, writer)
 	printRequestInfo(request)
 }
 
+// Updates a single auction that matches a given auctionId: {}
 func updateAuction(writer http.ResponseWriter, request *http.Request) {
 
 }

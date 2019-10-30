@@ -1,10 +1,11 @@
 package main
 
 import (
+	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"regexp"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -23,6 +24,7 @@ func main() {
 	// Server routing
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/api/auctions", getAuctions).Methods("GET")
+	router.HandleFunc("/api/auction", addAuction).Methods("POST")
 	router.HandleFunc("/api/auction/{id}", getAuction).Methods("GET")
 	router.HandleFunc("/api/auction/{id}", updateAuction).Methods("POST")
 	router.HandleFunc("/api/auction/{id}", deleteAuction).Methods("DELETE")
@@ -31,13 +33,21 @@ func main() {
 	http.ListenAndServe(":"+SERVER_PORT, router)
 }
 
+func db() (d *sql.DB) {
+	db, _ := sql.Open("sqlite3", "./auction.db")
+	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS auctions (id INTEGER PRIMARY KEY, name TEXT, firstBid REAL, sellerId INTEGER, status TEXT)")
+	statement.Exec()
+	return db
+}
+
 func printRequestInfo(request *http.Request) {
 	fmt.Println("Method: ", request.Method)
 	fmt.Println("URL: ", request.URL)
 	fmt.Println("")
 }
 
-func contains(match, source string) (r bool) {
-	res, _ := regexp.MatchString(match, source)
-	return res
+func sendResponse(res interface{}, writer http.ResponseWriter) {
+	response, _ := json.Marshal(res)
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Write(response)
 }
