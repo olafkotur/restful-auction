@@ -15,7 +15,7 @@ func main() {
 		"http://localhost:8080/api/user/login",
 	}
 
-	runTestsR(testUrls, &checks)
+	runTestR(testUrls, &checks)
 
 	fmt.Printf("\n--- Test Results ---\n")
 	for i, c := range checks {
@@ -23,7 +23,7 @@ func main() {
 	}
 }
 
-func runTestsR(urls []string, checks *[]string) int {
+func runTestR(urls []string, checks *[]string) int {
 	if len(urls) == 0 {
 		return 0
 	}
@@ -35,7 +35,7 @@ func runTestsR(urls []string, checks *[]string) int {
 	}
 	printResponse(res)
 	*checks = append(*checks, "PASSED")
-	return runTestsR(append(urls[:0], urls[1:]...), checks)
+	return runTestR(append(urls[:0], urls[1:]...), checks)
 }
 
 func printResponse(res *http.Response) {
