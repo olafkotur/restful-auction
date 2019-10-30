@@ -24,13 +24,14 @@ func getAuctions(writer http.ResponseWriter, request *http.Request) {
 	var name, status string
 
 	// Fetch db and traverse each row adding to the response array
-	rows, _ := db().Query("SELECT * FROM auctions")
+	db := getDatabase()
+	rows, _ := db.Query("SELECT * FROM auctions")
 	for rows.Next() {
 		rows.Scan(&id, &name, &firstBid, &sellerId, &status)
 		object := ResponseItem{id, name, firstBid, sellerId, status}
 		res = append(res, object)
 	}
-	db().Close()
+	db.Close()
 	rows.Close()
 
 	sendResponse(res, writer)
@@ -40,26 +41,25 @@ func getAuctions(writer http.ResponseWriter, request *http.Request) {
 // Adds an auction to the db with given auction details
 func addAuction(writer http.ResponseWriter, request *http.Request) {
 	type Response struct {
-		Id       int     `json:"id"`
-		Name     string  `json:"name"`
-		FirstBid float32 `json:"firstbid"`
-		SellerId int     `json:"sellerId"`
-		Status   string  `json:"status"`
+		Status string `json:"status"`
 	}
+
+	var res Response
 
 	// Extract data from the POST
 	request.ParseForm()
-	id := request.Form.Get("id")
+	id := toInt(request.Form.Get("id"))
 	name := request.Form.Get("name")
-	firstBid := request.Form.Get("firstBid")
-	sellerId := request.Form.Get("sellerId")
+	firstBid := toInt(request.Form.Get("firstBid"))
+	sellerId := toInt(request.Form.Get("sellerId"))
 	status := request.Form.Get("status")
 
 	// Add a new auction to the db with given schema
-	statement, _ := db().Prepare("INSERT INTO auctions(id, name, firstBid, sellerId, status) values(?, ?, ?, ?, ?)")
+	db := getDatabase()
+	statement, _ := db.Prepare("INSERT INTO auctions(id, name, firstBid, sellerId, status) values(?, ?, ?, ?, ?)")
 	statement.Exec(id, name, firstBid, sellerId, status)
+	db.Close()
 
-	var res Response
 	sendResponse(res, writer)
 	printRequestInfo(request)
 }
@@ -84,12 +84,13 @@ func getAuction(writer http.ResponseWriter, request *http.Request) {
 	auctionId := strings.Split(uri, "/api/auction/")[1]
 
 	// Fetch db and traverse each row setting the response
-	rows, _ := db().Query("SELECT * FROM auctions WHERE id=" + auctionId)
+	db := getDatabase()
+	rows, _ := db.Query("SELECT * FROM auctions WHERE id=" + auctionId)
 	for rows.Next() {
 		rows.Scan(&id, &name, &firstBid, &sellerId, &status)
 		res = Response{id, name, firstBid, sellerId, status}
 	}
-	db().Close()
+	db.Close()
 	rows.Close()
 
 	sendResponse(res, writer)
@@ -109,8 +110,10 @@ func deleteAuction(writer http.ResponseWriter, request *http.Request) {
 	auctionId := strings.Split(uri, "/api/auction/")[1]
 
 	// Delete auction by id from the db
-	statement, _ := db().Prepare("DELETE FROM auctions WHERE id=?")
+	db := getDatabase()
+	statement, _ := db.Prepare("DELETE FROM auctions WHERE id=?")
 	r, _ := statement.Exec(auctionId)
+	db.Close()
 
 	// Check if any rows have been deleted and set the response
 	rowsAffected, _ := r.RowsAffected()

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -33,7 +34,7 @@ func main() {
 	http.ListenAndServe(":"+SERVER_PORT, router)
 }
 
-func db() (d *sql.DB) {
+func getDatabase() (d *sql.DB) {
 	db, _ := sql.Open("sqlite3", "./auction.db")
 	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS auctions (id INTEGER PRIMARY KEY, name TEXT, firstBid REAL, sellerId INTEGER, status TEXT)")
 	statement.Exec()
@@ -50,4 +51,9 @@ func sendResponse(res interface{}, writer http.ResponseWriter) {
 	response, _ := json.Marshal(res)
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Write(response)
+}
+
+func toInt(s string) (i int) {
+	str, _ := strconv.Atoi(s)
+	return str
 }
