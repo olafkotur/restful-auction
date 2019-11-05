@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,7 +11,6 @@ import (
 	"github.com/go-redis/redis/v7"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // curl -d "id=1&name=bob&firstBid=12.2&sellerId=32&status=Testing1" localhost:8080/api/auction
@@ -53,13 +51,6 @@ func main() {
 
 	fmt.Printf("Listening on port %s...\n\n", SERVER_PORT)
 	http.ListenAndServe(":"+SERVER_PORT, router)
-}
-
-func getDatabase() (d *sql.DB) {
-	db, _ := sql.Open("sqlite3", "./auction.db")
-	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS auctions (id INTEGER PRIMARY KEY, name TEXT, firstBid REAL, sellerId INTEGER, status TEXT)")
-	statement.Exec()
-	return db
 }
 
 func printRequestInfo(request *http.Request) {

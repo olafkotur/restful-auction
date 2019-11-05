@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type Auction struct {
@@ -87,25 +85,20 @@ func deleteAuction(writer http.ResponseWriter, request *http.Request) {
 	uri := request.URL.String()
 	auctionId := strings.Split(uri, "/api/auction/")[1]
 
-	// Delete auction by id from the db
-	iter := client.Scan(0, "auction:"+auctionId, 0).Iterator()
-	for iter.Next() {
-		err := client.Del(iter.Val()).Err()
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	_, err := client.Del("auction:" + auctionId).Result()
-	if err != nil {
-		sendFailedResponse(writer)
-	} else {
+	res, _ := client.Del("auction:" + auctionId).Result()
+	if res != 0 {
 		sendSuccessResponse(writer)
+	} else {
+		sendFailedResponse(writer)
 	}
 	printRequestInfo(request)
 }
 
 // Updates a single auction that matches a given auctionId: {}
 func updateAuction(writer http.ResponseWriter, request *http.Request) {
+	// Get auctionId from path
+	uri := request.URL.String()
+	auctionId := strings.Split(uri, "/api/auction/")[1]
 
+	auctionId = auctionId
 }
