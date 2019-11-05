@@ -4,13 +4,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
 
+	"github.com/go-redis/redis/v7"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	_ "github.com/mattn/go-sqlite3"
 )
+
+var client *redis.Client
 
 func main() {
 	// Env variables
@@ -20,6 +25,18 @@ func main() {
 		SERVER_PORT = "8080"
 	} else {
 		SERVER_PORT = os.Getenv("SERVER_PORT")
+	}
+
+	client = redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	// Ensure that the redis db is connected
+	_, err = client.Ping().Result()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	// Server routing
@@ -53,7 +70,16 @@ func sendResponse(res interface{}, writer http.ResponseWriter) {
 	writer.Write(response)
 }
 
+func toString(i int) (s string) {
+	return strconv.Itoa(i)
+}
+
 func toInt(s string) (i int) {
-	str, _ := strconv.Atoi(s)
-	return str
+	res, _ := strconv.Atoi(s)
+	return res
+}
+
+func toFloat(s string) (f float64) {
+	res, _ := strconv.ParseFloat(s, 64)
+	return res
 }

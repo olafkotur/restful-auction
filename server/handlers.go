@@ -1,38 +1,33 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type Auction struct {
+	Id       int     `json:"id"`
+	Name     string  `json:"name"`
+	FirstBid float64 `json:"firstbid"`
+	SellerId int     `json:"sellerId"`
+	Status   string  `json:"status"`
+}
+
 // Fetches all auctions from the db: [{}, {}...]
 func getAuctions(writer http.ResponseWriter, request *http.Request) {
-	type ResponseItem struct {
-		Id       int     `json:"id"`
-		Name     string  `json:"name"`
-		FirstBid float32 `json:"firstbid"`
-		SellerId int     `json:"sellerId"`
-		Status   string  `json:"status"`
-	}
-	type Response []ResponseItem
+	var res []Auction
 
-	var res Response
-	var id, sellerId int
-	var firstBid float32
-	var name, status string
-
-	// Fetch db and traverse each row adding to the response array
-	db := getDatabase()
-	rows, _ := db.Query("SELECT * FROM auctions")
-	for rows.Next() {
-		rows.Scan(&id, &name, &firstBid, &sellerId, &status)
-		object := ResponseItem{id, name, firstBid, sellerId, status}
-		res = append(res, object)
+	// Fetch all keys from the database
+	keys := client.Keys("auction:*").Val()
+	for _, key := range keys {
+		data := Auction{}
+		auction, _ := client.Get(key).Result()
+		json.Unmarshal([]byte(auction), &data)
+		res = append(res, Auction{data.Id, data.Name, data.FirstBid, data.SellerId, data.Status})
 	}
-	db.Close()
-	rows.Close()
 
 	sendResponse(res, writer)
 	printRequestInfo(request)
@@ -50,15 +45,15 @@ func addAuction(writer http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 	id := toInt(request.Form.Get("id"))
 	name := request.Form.Get("name")
-	firstBid := toInt(request.Form.Get("firstBid"))
+	firstBid := toFloat(request.Form.Get("firstBid"))
 	sellerId := toInt(request.Form.Get("sellerId"))
 	status := request.Form.Get("status")
 
-	// Add a new auction to the db with given schema
-	db := getDatabase()
-	statement, _ := db.Prepare("INSERT INTO auctions(id, name, firstBid, sellerId, status) values(?, ?, ?, ?, ?)")
-	statement.Exec(id, name, firstBid, sellerId, status)
-	db.Close()
+	item, _ := json.Marshal(Auction{id, name, firstBid, sellerId, status})
+	err := client.Set("auction:"+toString(id), item, 0)
+	if err != nil {
+		panic(err)
+	}
 
 	sendResponse(res, writer)
 	printRequestInfo(request)
@@ -66,32 +61,16 @@ func addAuction(writer http.ResponseWriter, request *http.Request) {
 
 // Fetches a single auction that matches given auctionId: {}
 func getAuction(writer http.ResponseWriter, request *http.Request) {
-	type Response struct {
-		Id       int     `json:"id"`
-		Name     string  `json:"name"`
-		FirstBid float32 `json:"firstbid"`
-		SellerId int     `json:"sellerId"`
-		Status   string  `json:"status"`
-	}
-
-	var res Response
-	var id, sellerId int
-	var firstBid float32
-	var name, status string
 
 	// Get auctionId from path
 	uri := request.URL.String()
 	auctionId := strings.Split(uri, "/api/auction/")[1]
 
-	// Fetch db and traverse each row setting the response
-	db := getDatabase()
-	rows, _ := db.Query("SELECT * FROM auctions WHERE id=" + auctionId)
-	for rows.Next() {
-		rows.Scan(&id, &name, &firstBid, &sellerId, &status)
-		res = Response{id, name, firstBid, sellerId, status}
-	}
-	db.Close()
-	rows.Close()
+	// Fetch auction from the db
+	data := Auction{}
+	auction, _ := client.Get("auction:" + auctionId).Result()
+	json.Unmarshal([]byte(auction), &data)
+	res := Auction{data.Id, data.Name, data.FirstBid, data.SellerId, data.Status}
 
 	sendResponse(res, writer)
 	printRequestInfo(request)
