@@ -15,6 +15,10 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// curl -d "id=1&name=bob&firstBid=12.2&sellerId=32&status=Testing1" localhost:8080/api/auction
+// curl -d "id=2&name=phil&firstBid=7329&sellerId=12&status=Testing2" localhost:8080/api/auction
+// curl -d "id=3&name=sandra&firstBid=12312&sellerId=2&status=Testing3" localhost:8080/api/auction
+
 var client *redis.Client
 
 func main() {
@@ -68,6 +72,16 @@ func sendResponse(res interface{}, writer http.ResponseWriter) {
 	response, _ := json.Marshal(res)
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Write(response)
+}
+
+func sendSuccessResponse(writer http.ResponseWriter) {
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Write([]byte("Success"))
+}
+
+func sendFailedResponse(writer http.ResponseWriter) {
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Write([]byte("Failed"))
 }
 
 func toString(i int) (s string) {

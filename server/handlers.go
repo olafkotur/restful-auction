@@ -39,8 +39,6 @@ func addAuction(writer http.ResponseWriter, request *http.Request) {
 		Status string `json:"status"`
 	}
 
-	var res Response
-
 	// Extract data from the POST
 	request.ParseForm()
 	id := toInt(request.Form.Get("id"))
@@ -49,13 +47,19 @@ func addAuction(writer http.ResponseWriter, request *http.Request) {
 	sellerId := toInt(request.Form.Get("sellerId"))
 	status := request.Form.Get("status")
 
-	item, _ := json.Marshal(Auction{id, name, firstBid, sellerId, status})
-	err := client.Set("auction:"+toString(id), item, 0)
-	if err != nil {
-		panic(err)
+	// Check if exists and add to the db
+	previousData := Auction{}
+	previous, _ := client.Get("auction:" + toString(id)).Result()
+	json.Unmarshal([]byte(previous), &previousData)
+
+	if previousData.Id != id {
+		item, _ := json.Marshal(Auction{id, name, firstBid, sellerId, status})
+		client.Set("auction:"+toString(id), item, 0)
+		sendSuccessResponse(writer)
+	} else {
+		sendFailedResponse(writer)
 	}
 
-	sendResponse(res, writer)
 	printRequestInfo(request)
 }
 
@@ -78,31 +82,26 @@ func getAuction(writer http.ResponseWriter, request *http.Request) {
 
 // Deletes a signle auction that matches given auctionId: {}
 func deleteAuction(writer http.ResponseWriter, request *http.Request) {
-	type Response struct {
-		Status string `json:"status"`
-	}
-
-	var res Response
 
 	// Get auctionId from path
 	uri := request.URL.String()
 	auctionId := strings.Split(uri, "/api/auction/")[1]
 
 	// Delete auction by id from the db
-	db := getDatabase()
-	statement, _ := db.Prepare("DELETE FROM auctions WHERE id=?")
-	r, _ := statement.Exec(auctionId)
-	db.Close()
-
-	// Check if any rows have been deleted and set the response
-	rowsAffected, _ := r.RowsAffected()
-	if rowsAffected > 0 {
-		res = Response{"success"}
-	} else {
-		res = Response{"invalid auctionId"}
+	iter := client.Scan(0, "auction:"+auctionId, 0).Iterator()
+	for iter.Next() {
+		err := client.Del(iter.Val()).Err()
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	sendResponse(res, writer)
+	_, err := client.Del("auction:" + auctionId).Result()
+	if err != nil {
+		sendFailedResponse(writer)
+	} else {
+		sendSuccessResponse(writer)
+	}
 	printRequestInfo(request)
 }
 
