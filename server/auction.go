@@ -9,7 +9,7 @@ import (
 func getAuctions(writer http.ResponseWriter, request *http.Request) {
 	var res []Auction
 
-	// Fetch all keys from the database
+	// Fetch all keys from the database and return all auctions
 	keys := client.Keys("auction:*").Val()
 	for _, key := range keys {
 		data := Auction{}
@@ -24,25 +24,25 @@ func getAuctions(writer http.ResponseWriter, request *http.Request) {
 
 // Adds an auction to the db with given auction details
 func addAuction(writer http.ResponseWriter, request *http.Request) {
+	auctionId := assignKeyId("auction")
+	status := "available"
+
 	// Extract data from the request body
 	_ = request.ParseForm()
-	id := toInt(request.Form.Get("id"))
 	name := request.Form.Get("name")
 	firstBid := toFloat(request.Form.Get("firstBid"))
 	sellerId := toInt(request.Form.Get("sellerId"))
-	status := request.Form.Get("status")
 
-	// Check if exists and add to the db
+	// Check if auction already exists, add to database if not
 	previousData := Auction{}
-	previous, _ := client.Get("auction:" + toString(id)).Result()
+	previous, _ := client.Get("auction:" + toString(auctionId)).Result()
 	_ = json.Unmarshal([]byte(previous), &previousData)
-
-	if previousData.Id != id {
-		item, _ := json.Marshal(Auction{id, status, name, firstBid, sellerId})
-		client.Set("auction:"+toString(id), item, 0)
-		sendResponse(ApiResponse{1, "success", "The auction has been added"}, writer)
+	if previousData.Id != auctionId {
+		item, _ := json.Marshal(Auction{auctionId, status, name, firstBid, sellerId})
+		client.Set("auction:"+toString(auctionId), item, 0)
+		sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
 	} else {
-		sendResponse(ApiResponse{2, "error", "An auction with this id already exists"}, writer)
+		sendResponse(ApiResponse{405, "error", "Invalid input"}, writer)
 	}
 
 	printRequestInfo(request)
@@ -80,9 +80,9 @@ func updateAuction(writer http.ResponseWriter, request *http.Request) {
 	if previousData.Id == toInt(auctionId) {
 		item, _ := json.Marshal(Auction{previousData.Id, status, name, previousData.FirstBid, previousData.SellerId})
 		client.Set("auction:"+auctionId, item, 0)
-		sendResponse(ApiResponse{1, "success", "Auction has been updated"}, writer)
+		sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
 	} else {
-		sendResponse(ApiResponse{2, "error", "Auction with specified id does not exist"}, writer)
+		sendResponse(ApiResponse{404, "error", "Auction not found"}, writer)
 	}
 }
 
@@ -90,12 +90,12 @@ func updateAuction(writer http.ResponseWriter, request *http.Request) {
 func deleteAuction(writer http.ResponseWriter, request *http.Request) {
 	auctionId := getMuxVariable("auctionId", request)
 
-	// Delete auction
+	// Delete auction from database
 	res, _ := client.Del("auction:" + auctionId).Result()
 	if res != 0 {
-		sendResponse(ApiResponse{1, "success", "Auction has been deleted"}, writer)
+		sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
 	} else {
-		sendResponse(ApiResponse{2, "error", "Could not delete auction"}, writer)
+		sendResponse(ApiResponse{404, "error", "Auction not found"}, writer)
 	}
 	printRequestInfo(request)
 }

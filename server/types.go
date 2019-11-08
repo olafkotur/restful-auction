@@ -10,7 +10,7 @@ type Auction struct {
 	Id       int     `json:"id"`
 	Status   string  `json:"status"`
 	Name     string  `json:"name"`
-	FirstBid float64 `json:"firstbid"`
+	FirstBid float64 `json:"firstBid"`
 	SellerId int     `json:"sellerId"`
 }
 

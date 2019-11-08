@@ -19,6 +19,12 @@ func addAuctionBid(writer http.ResponseWriter, request *http.Request) {
 	auction, _ := client.Get("auction:" + auctionId).Result()
 	_ = json.Unmarshal([]byte(auction), &auctionData)
 
+	// Check if bid is higher or equal to than the first bid
+	if auctionData.FirstBid > bidAmount {
+		sendResponse(ApiResponse{405, "error", "Invalid input"}, writer)
+		return
+	}
+
 	// Check if the requested bid is higher than previous bids
 	keys := client.Keys("bid:*").Val()
 	for _, key := range keys {
@@ -26,15 +32,9 @@ func addAuctionBid(writer http.ResponseWriter, request *http.Request) {
 		bid, _ := client.Get(key).Result()
 		_ = json.Unmarshal([]byte(bid), &bidData)
 		if bidData.BidAmount >= bidAmount {
-			sendResponse(ApiResponse{2, "error", "The bid amount must be greater than the highest bid"}, writer)
+			sendResponse(ApiResponse{405, "error", "Invalid input"}, writer)
 			return
 		}
-	}
-
-	// Add auction first bid if not yet set
-	if auctionData.FirstBid <= 0 {
-		item, _ := json.Marshal(Auction{auctionData.Id, auctionData.Status, auctionData.Name, bidAmount, auctionData.SellerId})
-		client.Set("auction:"+auctionId, item, 0)
 	}
 
 	// Add bid to database
@@ -42,7 +42,7 @@ func addAuctionBid(writer http.ResponseWriter, request *http.Request) {
 	client.Set("bid:"+toString(bidId), item, 0)
 
 	printRequestInfo(request)
-	sendResponse(ApiResponse{1, "Success", "The bid has been placed"}, writer)
+	sendResponse(ApiResponse{200, "Success", "Successful operation"}, writer)
 }
 
 func getBidsByAuctionId(writer http.ResponseWriter, request *http.Request) {
