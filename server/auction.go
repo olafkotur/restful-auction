@@ -69,7 +69,8 @@ func updateAuction(writer http.ResponseWriter, request *http.Request) {
 	// Extract data from the POST
 	_ = request.ParseForm()
 	name := request.Form.Get("name")
-	status := request.Form.Get("status")
+	firstBid := toFloat(request.Form.Get("firstBid"))
+	sellerId := toInt(request.Form.Get("sellerId"))
 
 	// Get exisiting data from db
 	previousData := Auction{}
@@ -78,7 +79,7 @@ func updateAuction(writer http.ResponseWriter, request *http.Request) {
 
 	// Update record if it exists
 	if previousData.Id == toInt(auctionId) {
-		item, _ := json.Marshal(Auction{previousData.Id, status, name, previousData.FirstBid, previousData.SellerId})
+		item, _ := json.Marshal(Auction{previousData.Id, previousData.Status, name, firstBid, sellerId})
 		client.Set("auction:"+auctionId, item, 0)
 		sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
 	} else {
