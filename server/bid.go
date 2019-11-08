@@ -1,0 +1,65 @@
+package main
+
+import (
+	"encoding/json"
+	"net/http"
+)
+
+func addAuctionBid(writer http.ResponseWriter, request *http.Request) {
+	bidId := assignKeyId("bid")
+	auctionId := getMuxVariable("auctionId", request)
+
+	// Extract data from the request body
+	_ = request.ParseForm()
+	bidAmount := toFloat(request.Form.Get("bidAmount"))
+	bidderId := toInt(request.Form.Get("bidderId"))
+
+	// Get auction details
+	auctionData := Auction{}
+	auction, _ := client.Get("auction:" + auctionId).Result()
+	_ = json.Unmarshal([]byte(auction), &auctionData)
+
+	// Check if bid is higher or equal to than the first bid
+	if auctionData.FirstBid > bidAmount {
+		sendResponse(ApiResponse{405, "error", "Invalid input"}, writer)
+		return
+	}
+
+	// Check if the requested bid is higher than previous bids
+	keys := client.Keys("bid:*").Val()
+	for _, key := range keys {
+		bidData := Bid{}
+		bid, _ := client.Get(key).Result()
+		_ = json.Unmarshal([]byte(bid), &bidData)
+		if bidData.AuctionId == toInt(auctionId) && bidData.BidAmount >= bidAmount {
+			sendResponse(ApiResponse{404, "error", "Invalid input"}, writer)
+			return
+		}
+	}
+
+	// Add bid to database
+	item, _ := json.Marshal(Bid{bidId, toInt(auctionId), bidAmount, bidderId})
+	client.Set("bid:"+toString(bidId), item, 0)
+
+	printRequestInfo(request)
+	sendResponse(ApiResponse{200, "Success", "Successful operation"}, writer)
+}
+
+func getBidsByAuctionId(writer http.ResponseWriter, request *http.Request) {
+	res := []Bid{}
+	auctionId := toInt(getMuxVariable("auctionId", request))
+
+	// Get bids
+	keys := client.Keys("bid:*").Val()
+	for _, key := range keys {
+		bidData := Bid{}
+		bid, _ := client.Get(key).Result()
+		_ = json.Unmarshal([]byte(bid), &bidData)
+		if bidData.AuctionId == auctionId {
+			res = append(res, bidData)
+		}
+	}
+
+	printRequestInfo(request)
+	sendResponse(res, writer)
+}
