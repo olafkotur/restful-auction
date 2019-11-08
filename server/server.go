@@ -16,6 +16,7 @@ import (
 // curl -d "id=1&name=bob&firstBid=12.2&sellerId=32&status=Testing1" localhost:8080/api/auction
 // curl -d "id=2&name=phil&firstBid=7329&sellerId=12&status=Testing2" localhost:8080/api/auction
 // curl -d "id=3&name=sandra&firstBid=12312&sellerId=2&status=Testing3" localhost:8080/api/auction
+// curl -d "name=bobby&status=newmessage" localhost:8080/api/auction
 
 var client *redis.Client
 
@@ -41,13 +42,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Server routing
 	router := mux.NewRouter().StrictSlash(true)
+
+	// Auction
 	router.HandleFunc("/api/auctions", getAuctions).Methods("GET")
 	router.HandleFunc("/api/auction", addAuction).Methods("POST")
-	router.HandleFunc("/api/auction/{id}", getAuction).Methods("GET")
-	router.HandleFunc("/api/auction/{id}", updateAuction).Methods("POST")
-	router.HandleFunc("/api/auction/{id}", deleteAuction).Methods("DELETE")
+	router.HandleFunc("/api/auction/{auctionId}", getAuction).Methods("GET")
+	router.HandleFunc("/api/auction/{auctionId}", updateAuction).Methods("POST")
+	router.HandleFunc("/api/auction/{auctionId}", deleteAuction).Methods("DELETE")
+
+	// Bid
+	// router.HandleFunc("/api/auction/{id}")
 
 	fmt.Printf("Listening on port %s...\n\n", SERVER_PORT)
 	http.ListenAndServe(":"+SERVER_PORT, router)
@@ -67,12 +72,16 @@ func sendResponse(res interface{}, writer http.ResponseWriter) {
 
 func sendSuccessResponse(writer http.ResponseWriter) {
 	writer.Header().Set("Content-Type", "application/json")
-	writer.Write([]byte("Success"))
+	writer.Write([]byte("Success\n"))
 }
 
 func sendFailedResponse(writer http.ResponseWriter) {
 	writer.Header().Set("Content-Type", "application/json")
-	writer.Write([]byte("Failed"))
+	writer.Write([]byte("Failed\n"))
+}
+
+func getMuxVariable(target string, request *http.Request) (v string) {
+	return mux.Vars(request)[target]
 }
 
 func toString(i int) (s string) {
