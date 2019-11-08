@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/go-redis/redis/v7"
 	"github.com/gorilla/mux"
@@ -52,10 +53,11 @@ func main() {
 	router.HandleFunc("/api/auction/{auctionId}", deleteAuction).Methods("DELETE")
 
 	// Bid
-	// router.HandleFunc("/api/auction/{id}")
+	router.HandleFunc("/api/auction/{id}/bid", addAuctionBid).Methods("POST")
+	router.HandleFunc("/api/auction/{id}/bids", getBidsByAuctionId).Methods("GET")
 
 	fmt.Printf("Listening on port %s...\n\n", SERVER_PORT)
-	http.ListenAndServe(":"+SERVER_PORT, router)
+	log.Fatal(http.ListenAndServe(":"+SERVER_PORT, router))
 }
 
 func printRequestInfo(request *http.Request) {
@@ -67,21 +69,26 @@ func printRequestInfo(request *http.Request) {
 func sendResponse(res interface{}, writer http.ResponseWriter) {
 	response, _ := json.Marshal(res)
 	writer.Header().Set("Content-Type", "application/json")
-	writer.Write(response)
-}
-
-func sendSuccessResponse(writer http.ResponseWriter) {
-	writer.Header().Set("Content-Type", "application/json")
-	writer.Write([]byte("Success\n"))
-}
-
-func sendFailedResponse(writer http.ResponseWriter) {
-	writer.Header().Set("Content-Type", "application/json")
-	writer.Write([]byte("Failed\n"))
+	_, err := writer.Write(response)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func getMuxVariable(target string, request *http.Request) (v string) {
 	return mux.Vars(request)[target]
+}
+
+func assignKeyId(prefix string) (k int) {
+	var highestKey int
+	keys := client.Keys(prefix + ":*").Val()
+	for _, key := range keys {
+		intKey := toInt(strings.Split(key, ":")[1])
+		if intKey > highestKey {
+			highestKey = intKey
+		}
+	}
+	return highestKey + 1
 }
 
 func toString(i int) (s string) {
