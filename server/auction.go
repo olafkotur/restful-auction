@@ -5,7 +5,6 @@ import (
 	"net/http"
 )
 
-// Fetches all auctions from the db
 func getAuctions(writer http.ResponseWriter, request *http.Request) {
 	var res []Auction
 
@@ -22,7 +21,6 @@ func getAuctions(writer http.ResponseWriter, request *http.Request) {
 	printRequestInfo(request)
 }
 
-// Adds an auction to the db with given auction details
 func addAuction(writer http.ResponseWriter, request *http.Request) {
 	auctionId := assignKeyId("auction")
 	status := "available"
@@ -48,7 +46,6 @@ func addAuction(writer http.ResponseWriter, request *http.Request) {
 	printRequestInfo(request)
 }
 
-// Fetches a single auction that matches given auctionId
 func getAuction(writer http.ResponseWriter, request *http.Request) {
 	auctionId := getMuxVariable("auctionId", request)
 
@@ -62,7 +59,6 @@ func getAuction(writer http.ResponseWriter, request *http.Request) {
 	printRequestInfo(request)
 }
 
-// Updates a single auction that matches a given auctionId
 func updateAuction(writer http.ResponseWriter, request *http.Request) {
 	auctionId := getMuxVariable("auctionId", request)
 
@@ -87,7 +83,6 @@ func updateAuction(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
-// Deletes a single auction that matches given auctionId
 func deleteAuction(writer http.ResponseWriter, request *http.Request) {
 	auctionId := getMuxVariable("auctionId", request)
 

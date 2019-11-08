@@ -56,6 +56,11 @@ func main() {
 	router.HandleFunc("/api/auction/{auctionId}/bid", addAuctionBid).Methods("POST")
 	router.HandleFunc("/api/auction/{auctionId}/bids", getBidsByAuctionId).Methods("GET")
 
+	// User
+	router.HandleFunc("/api/users", getUsers).Methods("GET")
+	router.HandleFunc("/api/user", createUser).Methods("POST")
+	router.HandleFunc("/api/user/login", userLogin).Methods("POST")
+
 	fmt.Printf("Listening on port %s...\n\n", SERVER_PORT)
 	log.Fatal(http.ListenAndServe(":"+SERVER_PORT, router))
 }

@@ -31,8 +31,8 @@ func addAuctionBid(writer http.ResponseWriter, request *http.Request) {
 		bidData := Bid{}
 		bid, _ := client.Get(key).Result()
 		_ = json.Unmarshal([]byte(bid), &bidData)
-		if bidData.BidAmount >= bidAmount {
-			sendResponse(ApiResponse{405, "error", "Invalid input"}, writer)
+		if bidData.AuctionId == toInt(auctionId) && bidData.BidAmount >= bidAmount {
+			sendResponse(ApiResponse{404, "error", "Invalid input"}, writer)
 			return
 		}
 	}
