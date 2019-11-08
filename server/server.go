@@ -15,11 +15,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// curl -d "id=1&name=bob&firstBid=12.2&sellerId=32&status=Testing1" localhost:8080/api/auction
-// curl -d "id=2&name=phil&firstBid=7329&sellerId=12&status=Testing2" localhost:8080/api/auction
-// curl -d "id=3&name=sandra&firstBid=12312&sellerId=2&status=Testing3" localhost:8080/api/auction
-// curl -d "name=bobby&status=newmessage" localhost:8080/api/auction
-
 var client *redis.Client
 
 func main() {
@@ -47,7 +42,7 @@ func main() {
 	router := mux.NewRouter().StrictSlash(true)
 
 	// Documentaion
-	router.HandleFunc("/api", getDocumentation).Methods("GET")
+	router.HandleFunc("/api/docs", getDocumentation).Methods("GET")
 
 	// Auction
 	router.HandleFunc("/api/auctions", getAuctions).Methods("GET")

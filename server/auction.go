@@ -30,13 +30,14 @@ func addAuction(writer http.ResponseWriter, request *http.Request) {
 	name := request.Form.Get("name")
 	firstBid := toFloat(request.Form.Get("firstBid"))
 	sellerId := toInt(request.Form.Get("sellerId"))
+	reservePrice := toFloat(request.Form.Get("reservePrice"))
 
 	// Check if auction already exists, add to database if not
 	previousData := Auction{}
 	previous, _ := client.Get("auction:" + toString(auctionId)).Result()
 	_ = json.Unmarshal([]byte(previous), &previousData)
 	if previousData.Id != auctionId {
-		item, _ := json.Marshal(Auction{auctionId, status, name, firstBid, sellerId})
+		item, _ := json.Marshal(AuctionWithReserve{auctionId, status, name, firstBid, sellerId, reservePrice})
 		client.Set("auction:"+toString(auctionId), item, 0)
 		sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
 	} else {
@@ -53,7 +54,7 @@ func getAuction(writer http.ResponseWriter, request *http.Request) {
 	data := Auction{}
 	auction, _ := client.Get("auction:" + auctionId).Result()
 	_ = json.Unmarshal([]byte(auction), &data)
-	res := Auction{data.Id, data.Status, data.Status, data.FirstBid, data.SellerId}
+	res := Auction{data.Id, data.Status, data.Name, data.FirstBid, data.SellerId}
 
 	sendResponse(res, writer)
 	printRequestInfo(request)

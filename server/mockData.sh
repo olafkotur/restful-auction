@@ -11,11 +11,11 @@ printf "\033[1;36mUsername: olafkotur, Password: pi\033[0m\n"
 
 # Add mock auctions
 printf "\033[1;32m\nAdding mock auctions via POST /api/auction\033[0m\n"
-curl -d "name=Mock1&firstBid=5&sellerId=1" localhost:8080/api/auction && echo
-curl -d "name=Mock1&firstBid=4&sellerId=1" localhost:8080/api/auction && echo
-curl -d "name=Mock1&firstBid=3&sellerId=1" localhost:8080/api/auction && echo
-curl -d "name=Mock1&firstBid=2&sellerId=1" localhost:8080/api/auction && echo
-curl -d "name=Mock1&firstBid=1&sellerId=1" localhost:8080/api/auction && echo
+curl -d "name=Mock1&firstBid=5&sellerId=1&reservePrice=42" localhost:8080/api/auction && echo
+curl -d "name=Mock1&firstBid=4&sellerId=1&reservePrice=42" localhost:8080/api/auction && echo
+curl -d "name=Mock1&firstBid=3&sellerId=1&reservePrice=42" localhost:8080/api/auction && echo
+curl -d "name=Mock1&firstBid=2&sellerId=1&reservePrice=42" localhost:8080/api/auction && echo
+curl -d "name=Mock1&firstBid=1&sellerId=1&reservePrice=42" localhost:8080/api/auction && echo
 
 # Add mock bids
 printf "\033[1;32m\nAdding mock bids via POST /api/auction/{auctionId}/bid\033[0m\n"

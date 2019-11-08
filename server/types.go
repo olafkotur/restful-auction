@@ -14,6 +14,15 @@ type Auction struct {
 	SellerId int     `json:"sellerId"`
 }
 
+type AuctionWithReserve struct {
+	Id           int     `json:"id"`
+	Status       string  `json:"status"`
+	Name         string  `json:"name"`
+	FirstBid     float64 `json:"firstBid"`
+	SellerId     int     `json:"sellerId"`
+	ReservePrice float64 `json:"reservePrice"`
+}
+
 type Bid struct {
 	Id        int     `json:"id"`
 	AuctionId int     `json:"auctionId"`
