@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -45,6 +46,9 @@ func main() {
 
 	router := mux.NewRouter().StrictSlash(true)
 
+	// Documentaion
+	router.HandleFunc("/api", getDocumentation).Methods("GET")
+
 	// Auction
 	router.HandleFunc("/api/auctions", getAuctions).Methods("GET")
 	router.HandleFunc("/api/auction", addAuction).Methods("POST")
@@ -63,6 +67,21 @@ func main() {
 
 	fmt.Printf("Listening on port %s...\n\n", SERVER_PORT)
 	log.Fatal(http.ListenAndServe(":"+SERVER_PORT, router))
+}
+
+func getDocumentation(writer http.ResponseWriter, request *http.Request) {
+	// Read docs html file
+	bytes, err := ioutil.ReadFile("./docs.html")
+	if err != nil {
+		panic(err)
+	}
+
+	// Send response as html
+	writer.Header().Set("Content-Type", "text/html")
+	_, err = writer.Write(bytes)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func printRequestInfo(request *http.Request) {
