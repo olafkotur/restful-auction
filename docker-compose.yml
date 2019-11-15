@@ -15,15 +15,6 @@ services:
     ports:
       - 8080:8080
 
-  client:
-    container_name: client
-    image: harbor.scc.lancs.ac.uk/koturo/client:latest
-    restart: unless-stopped
-    environment:
-      - CLIENT_TYPE
-    build:
-      context: client
-
   load-balancer:
     container_name: load-balancer
     image: harbor.scc.lancs.ac.uk/koturo/load-balancer:latest

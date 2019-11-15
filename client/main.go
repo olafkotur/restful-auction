@@ -13,21 +13,6 @@ import (
 	"strings"
 )
 
-/*
-	1. Get user input on which end point they would like to target
-	2. Get user input for each data point they need to enter
-	3. Make the request
-	4. Print result
-*/
-
-/* Seller endpoints
-1. POST /api/auction
-2. UPDATE /api/auction/{auctionId}
-3. DELETE /api/auction/{auctionId}
-4. POST /api/user
-5. POST /api/user/login
-*/
-
 var apiPrefix string
 
 func main() {
@@ -36,13 +21,13 @@ func main() {
 		apiPrefix = "http://localhost:8080"
 	}
 
-	// clientType := os.Getenv("CLIENT_TYPE")
-	clientType := "seller"
+	fmt.Println("Are you a buyer or a seller?")
+	clientType := getUserInput("client type")
 
 	if clientType == "seller" {
 		clientSell()
 	} else if clientType == "buyer" {
-
+		clientBuy()
 	} else {
 		fmt.Println("You must specify whether the client is a 'seller' or a 'buyer'")
 	}
@@ -77,22 +62,73 @@ func clientSell() {
 		reservePrice := getUserInput("reservePrice")
 		addAuction(name, firstBid, sellerId, reservePrice)
 	case 3:
-		id := getUserInput("id")
+		id := getUserInput("auctionId")
 		getAuction(id)
 	case 4:
-		id := getUserInput("id")
+		id := getUserInput("auctionId")
 		name := getUserInput("name")
 		firstBid := getUserInput("firstBid")
 		sellerId := getUserInput("sellerId")
 		updateAuction(id, name, firstBid, sellerId)
 	case 5:
-		id := getUserInput("id")
+		id := getUserInput("auctionId")
 		deleteAuction(id)
 	case 6:
 		username := getUserInput("username")
 		password := getUserInput("password")
 		createUser(username, password)
 	case 7:
+		username := getUserInput("username")
+		password := getUserInput("password")
+		userLogin(username, password)
+	}
+
+	fmt.Println("\nWould you like to request again? y/n")
+	again := getUserInput("option")
+	if again == "y" || again == "Y" {
+		clientSell()
+	} else {
+		return
+	}
+}
+
+func clientBuy() {
+	sellerOptions := []string{
+		"List all active auctions",
+		"Get auction by id",
+		"Place a bid or an auction",
+		"List all bids for a particular auction",
+		"Create a new user",
+		"Login as existing user",
+	}
+
+	fmt.Printf("------Available buyer options-------\n")
+	for i, opt := range sellerOptions {
+		fmt.Printf("%d: %s\n", i+1, opt)
+	}
+	fmt.Println()
+
+	option, _ := strconv.Atoi(getUserInput("option"))
+
+	switch option {
+	case 1:
+		getAuctions()
+	case 2:
+		id := getUserInput("auctionId")
+		getAuction(id)
+	case 3:
+		id := getUserInput("auctionId")
+		bidAmount := getUserInput("bidAmount")
+		bidderId := getUserInput("bidderId")
+		addAuctionBid(id, bidAmount, bidderId)
+	case 4:
+		id := getUserInput("auctionId")
+		getBidsByAuctionId(id)
+	case 5:
+		username := getUserInput("username")
+		password := getUserInput("password")
+		createUser(username, password)
+	case 6:
 		username := getUserInput("username")
 		password := getUserInput("password")
 		userLogin(username, password)

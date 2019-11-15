@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -57,18 +58,22 @@ func userLogin(writer http.ResponseWriter, request *http.Request) {
 
 	// Check if the credentials match with a user
 	keys := client.Keys("user:*").Val()
+	isLoggedIn := false
 	for _, key := range keys {
 		userData := User{}
 		user, _ := client.Get(key).Result()
 		_ = json.Unmarshal([]byte(user), &userData)
-		if userData.Username != username || userData.Password != password {
-			sendResponse(ApiResponse{400, "error", "Invalid username/password supplied"}, writer)
-			return
+		if userData.Username == username && userData.Password == password {
+			fmt.Println(userData.Username, username)
+			isLoggedIn = true
 		}
 	}
 
-	// TODO: Do something with authentication here
+	if isLoggedIn {
+		sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
+	} else {
+		sendResponse(ApiResponse{400, "error", "Invalid username/password supplied"}, writer)
+	}
 
-	sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
 	printRequestInfo(request)
 }
