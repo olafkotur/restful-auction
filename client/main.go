@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strconv"
+	"strings"
 )
 
 /*
@@ -28,10 +31,8 @@ import (
 var apiPrefix string
 
 func main() {
-	env := os.Getenv("ENV")
-	if env == "production" {
-		apiPrefix = "TODO"
-	} else {
+	apiPrefix = os.Getenv("API_PREFIX")
+	if apiPrefix == "" {
 		apiPrefix = "http://localhost:8080"
 	}
 
@@ -58,39 +59,61 @@ func clientSell() {
 		"Login as existing user",
 	}
 
-	fmt.Printf("------Available seller options-------\n\n")
+	fmt.Printf("------Available seller options-------\n")
 	for i, opt := range sellerOptions {
 		fmt.Printf("%d: %s\n", i+1, opt)
 	}
 	fmt.Println()
 
-	// TODO: Get user input
-	option := 9
-	id := "3"
-	name, firstBid, sellerId, reservePrice := "bob", "1", "2", "0"
-	bidAmount, bidderId := "52", "1"
-	username, password := "olafciu", "lapis"
+	option, _ := strconv.Atoi(getUserInput("option"))
 
 	switch option {
 	case 1:
 		getAuctions()
 	case 2:
+		name := getUserInput("name")
+		firstBid := getUserInput("firstBid")
+		sellerId := getUserInput("sellerId")
+		reservePrice := getUserInput("reservePrice")
 		addAuction(name, firstBid, sellerId, reservePrice)
 	case 3:
+		id := getUserInput("id")
 		getAuction(id)
 	case 4:
+		id := getUserInput("id")
+		name := getUserInput("name")
+		firstBid := getUserInput("firstBid")
+		sellerId := getUserInput("sellerId")
 		updateAuction(id, name, firstBid, sellerId)
 	case 5:
+		id := getUserInput("id")
 		deleteAuction(id)
 	case 6:
-		addAuctionBid(id, bidAmount, bidderId)
-	case 7:
-		getBidsByAuctionId(id)
-	case 8:
+		username := getUserInput("username")
+		password := getUserInput("password")
 		createUser(username, password)
-	case 9:
+	case 7:
+		username := getUserInput("username")
+		password := getUserInput("password")
 		userLogin(username, password)
 	}
+
+	fmt.Println("\nWould you like to request again? y/n")
+	again := getUserInput("option")
+	if again == "y" || again == "Y" {
+		clientSell()
+	} else {
+		return
+	}
+}
+
+func getUserInput(inputType string) (i string) {
+	fmt.Println("Please enter the " + inputType)
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	input = strings.Replace(input, "\r\n", "", -1)
+	input = strings.Replace(input, "\n", "", -1)
+	return input
 }
 
 func printArrayResponseBody(res *http.Response) {
