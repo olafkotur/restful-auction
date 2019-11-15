@@ -1,9 +1,14 @@
-FROM  golang:1.8
+FROM golang:1.13
 
-WORKDIR /go/src/app
+RUN apt-get update 
+RUN apt-get -y install redis-server
+
+WORKDIR /go/src/server
 COPY . .
 
-RUN go get -d -v ./...
-RUN go install -v ./...
+RUN go get
+RUN go build
 
-CMD ["app"]
+EXPOSE 8080
+
+CMD redis-server & ./main
