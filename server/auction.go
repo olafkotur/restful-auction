@@ -21,7 +21,15 @@ func addAuction(writer http.ResponseWriter, request *http.Request) {
 	name := request.Form.Get("name")
 	firstBid := toFloat(request.Form.Get("firstBid"))
 	sellerId := toInt(request.Form.Get("sellerId"))
-	// reservePrice := toFloat(request.Form.Get("reservePrice"))
+	reservePriceS := request.Form.Get("reservePrice")
+
+	// Safety in case no reserve price is given
+	var reservePrice float64
+	if reservePriceS != "" {
+		reservePrice = toFloat(reservePriceS)
+	} else {
+		reservePrice = 0
+	}
 
 	auctionId := assignAuctionId()
 	status := "available"
@@ -34,7 +42,7 @@ func addAuction(writer http.ResponseWriter, request *http.Request) {
 		}
 	}
 
-	auction := Auction{auctionId, status, name, firstBid, sellerId}
+	auction := Auction{auctionId, status, name, firstBid, sellerId, reservePrice}
 	auctions = append(auctions, auction)
 
 	res := ApiResponse{200, "success", "Successful operation"}
@@ -71,7 +79,7 @@ func updateAuction(writer http.ResponseWriter, request *http.Request) {
 	// Update auction only if it exists
 	for i, auction := range auctions {
 		if auctionId == auction.Id {
-			auctions[i] = Auction{auction.Id, auction.Status, name, firstBid, sellerId}
+			auctions[i] = Auction{auction.Id, auction.Status, name, firstBid, sellerId, auction.ReservePrice}
 			sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
 			return
 		}

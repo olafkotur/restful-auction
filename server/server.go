@@ -124,6 +124,16 @@ func assignAuctionId() (key int) {
 	return highestKey + 1
 }
 
+func assignUserId() (key int) {
+	var highestKey int
+	for _, user := range users {
+		if user.Id > highestKey {
+			highestKey = user.Id
+		}
+	}
+	return highestKey + 1
+}
+
 func toString(i int) (s string) {
 	return strconv.Itoa(i)
 }

@@ -1,79 +1,62 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
+// Returns all users
 func getUsers(writer http.ResponseWriter, request *http.Request) {
-	users := []UserInfo{}
+	printRequestInfo(request)
 
-	// Fetch all users and add them to the result array
-	keys := client.Keys("user:*").Val()
-	for _, key := range keys {
-		userData := UserInfo{}
-		user, _ := client.Get(key).Result()
-		_ = json.Unmarshal([]byte(user), &userData)
-		users = append(users, userData)
+	// Return all users omitting password
+	var res []UserInfo
+	for _, user := range users {
+		res = append(res, UserInfo{user.Id, user.Username})
 	}
 
-	sendResponse(users, writer)
-	printRequestInfo(request)
+	sendResponse(res, writer)
 }
 
+// Creates a new user in the system
 func createUser(writer http.ResponseWriter, request *http.Request) {
-	userId := assignKeyId("user")
+	printRequestInfo(request)
+	userId := assignUserId()
 
 	// Extract data from the request body
 	_ = request.ParseForm()
 	username := request.Form.Get("username")
 	password := request.Form.Get("password")
 
-	// Check if user already exists with that name
-	keys := client.Keys("user:*").Val()
-	for _, key := range keys {
-		userData := User{}
-		user, _ := client.Get(key).Result()
-		_ = json.Unmarshal([]byte(user), &userData)
-		if userData.Username == username {
+	// Check if the username is already taken
+	for _, user := range users {
+		if username == user.Username {
 			sendResponse(ApiResponse{400, "error", "Invalid username/password supplied"}, writer)
 			return
 		}
 	}
 
-	// Create user in the database
-	item, _ := json.Marshal(User{userId, username, password})
-	client.Set("user:"+toString(userId), item, 0)
-
+	users = append(users, User{userId, username, password})
 	sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
-	printRequestInfo(request)
 }
 
+// Allows the user to login with supplied credentials
 func userLogin(writer http.ResponseWriter, request *http.Request) {
+	printRequestInfo(request)
+
 	// Extract data from the request body
 	_ = request.ParseForm()
 	username := request.Form.Get("username")
 	password := request.Form.Get("password")
 
 	// Check if the credentials match with a user
-	keys := client.Keys("user:*").Val()
-	isLoggedIn := false
-	for _, key := range keys {
-		userData := User{}
-		user, _ := client.Get(key).Result()
-		_ = json.Unmarshal([]byte(user), &userData)
-		if userData.Username == username && userData.Password == password {
-			fmt.Println(userData.Username, username)
-			isLoggedIn = true
+	for _, user := range users {
+		if username == user.Username {
+			if password == user.Password {
+				sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
+				return
+			}
 		}
 	}
 
-	if isLoggedIn {
-		sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
-	} else {
-		sendResponse(ApiResponse{400, "error", "Invalid username/password supplied"}, writer)
-	}
-
-	printRequestInfo(request)
+	sendResponse(ApiResponse{400, "error", "Invalid username/password supplied"}, writer)
 }
