@@ -17,8 +17,6 @@ services:
     container_name: load-balancer
     image: harbor.scc.lancs.ac.uk/koturo/load-balancer:latest
     restart: unless-stopped
-    environment:
-      - REDIS_URL=redis:6379
     build:
       context: load-balancer
     networks:
@@ -31,7 +29,9 @@ services:
     image: harbor.scc.lancs.ac.uk/koturo/server:latest
     restart: unless-stopped
     environment:
-      - REDIS_URL=redis:6379
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - EXTERNAL_PORT=8081
     build:
       context: server
     networks:
@@ -45,6 +45,10 @@ services:
     container_name: server2
     image: harbor.scc.lancs.ac.uk/koturo/server:latest
     restart: unless-stopped
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - EXTERNAL_PORT=8082
     build:
       context: server
     networks:

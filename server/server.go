@@ -6,8 +6,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
+	"github.com/go-redis/redis/v7"
 	"github.com/gorilla/mux"
 )
 
@@ -15,30 +17,31 @@ var auctions []Auction
 var bids []Bid
 var users []User
 
-// var client *redis.Client
+var client *redis.Client
 
 func main() {
-	// Env variables
-	// var REDIS_URL string
-	// err := godotenv.Load()
-	// REDIS_URL = os.Getenv("REDIS_URL")
-	// if err != nil {
-	// 	REDIS_URL = "localhost:6379"
-	// }
+	// Get redis url from environment variables
+	var redisUrl string
+	externalPort := os.Getenv("EXTERNAL_PORT")
+	redisHost := os.Getenv("REDIS_HOST")
+	redisPort := os.Getenv("REDIS_PORT")
+	redisUrl = redisHost + ":" + redisPort
+	if redisUrl == ":" {
+		redisUrl = "redis:6379"
+	}
 
-	port := "8080"
-
-	// client = redis.NewClient(&redis.Options{
-	// 	Addr:     REDIS_URL,
-	// 	Password: "",
-	// 	DB:       0,
-	// })
+	// Create new instance of redis
+	client = redis.NewClient(&redis.Options{
+		Addr:     redisUrl,
+		Password: "",
+		DB:       0,
+	})
 
 	// Ensure that the redis db is connected
-	// _, err = client.Ping().Result()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	_, err := client.Ping().Result()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	router := mux.NewRouter().StrictSlash(true)
 
@@ -61,8 +64,8 @@ func main() {
 	router.HandleFunc("/api/user", createUser).Methods("POST")
 	router.HandleFunc("/api/user/login", userLogin).Methods("POST")
 
-	fmt.Printf("Listening on port %s...\n\n", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	fmt.Printf("Listening on port %s...\n\n", externalPort)
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
 func getDocumentation(writer http.ResponseWriter, request *http.Request) {
