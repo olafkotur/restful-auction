@@ -6,42 +6,39 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
-	"strings"
 
-	"github.com/go-redis/redis/v7"
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 )
 
 var auctions []Auction
 var bids []Bid
 var users []User
 
-var client *redis.Client
+// var client *redis.Client
 
 func main() {
 	// Env variables
-	var SERVER_PORT string
-	err := godotenv.Load()
-	if err != nil {
-		SERVER_PORT = "8080"
-	} else {
-		SERVER_PORT = os.Getenv("SERVER_PORT")
-	}
+	// var REDIS_URL string
+	// err := godotenv.Load()
+	// REDIS_URL = os.Getenv("REDIS_URL")
+	// if err != nil {
+	// 	REDIS_URL = "localhost:6379"
+	// }
 
-	client = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
+	port := "8080"
+
+	// client = redis.NewClient(&redis.Options{
+	// 	Addr:     REDIS_URL,
+	// 	Password: "",
+	// 	DB:       0,
+	// })
 
 	// Ensure that the redis db is connected
-	_, err = client.Ping().Result()
-	if err != nil {
-		log.Fatal(err)
-	}
+	// _, err = client.Ping().Result()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	router := mux.NewRouter().StrictSlash(true)
 
@@ -64,8 +61,8 @@ func main() {
 	router.HandleFunc("/api/user", createUser).Methods("POST")
 	router.HandleFunc("/api/user/login", userLogin).Methods("POST")
 
-	fmt.Printf("Listening on port %s...\n\n", SERVER_PORT)
-	log.Fatal(http.ListenAndServe(":"+SERVER_PORT, router))
+	fmt.Printf("Listening on port %s...\n\n", port)
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
 
 func getDocumentation(writer http.ResponseWriter, request *http.Request) {
@@ -100,18 +97,6 @@ func sendResponse(res interface{}, writer http.ResponseWriter) {
 
 func getMuxVariable(target string, request *http.Request) (v string) {
 	return mux.Vars(request)[target]
-}
-
-func assignKeyId(prefix string) (k int) {
-	var highestKey int
-	keys := client.Keys(prefix + ":*").Val()
-	for _, key := range keys {
-		intKey := toInt(strings.Split(key, ":")[1])
-		if intKey > highestKey {
-			highestKey = intKey
-		}
-	}
-	return highestKey + 1
 }
 
 func assignAuctionId() (key int) {
