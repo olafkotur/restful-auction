@@ -124,6 +124,16 @@ func assignAuctionId() (key int) {
 	return highestKey + 1
 }
 
+func assignBidId() (key int) {
+	var highestKey int
+	for _, bid := range bids {
+		if bid.Id > highestKey {
+			highestKey = bid.Id
+		}
+	}
+	return highestKey + 1
+}
+
 func assignUserId() (key int) {
 	var highestKey int
 	for _, user := range users {
