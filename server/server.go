@@ -15,6 +15,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var auctions []Auction
+var bids []Bid
+var users []User
+
 var client *redis.Client
 
 func main() {
@@ -105,6 +109,16 @@ func assignKeyId(prefix string) (k int) {
 		intKey := toInt(strings.Split(key, ":")[1])
 		if intKey > highestKey {
 			highestKey = intKey
+		}
+	}
+	return highestKey + 1
+}
+
+func assignAuctionId() (key int) {
+	var highestKey int
+	for _, auction := range auctions {
+		if auction.Id > highestKey {
+			highestKey = auction.Id
 		}
 	}
 	return highestKey + 1
