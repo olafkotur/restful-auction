@@ -15,9 +15,11 @@ func addAuctionBid(writer http.ResponseWriter, request *http.Request) {
 
 	// Check if bid is higher or equal to than the first bid
 	exists := false
+	sellerId := 0
 	for _, auction := range auctions {
 		if auctionId == auction.Id {
 			exists = true
+			sellerId = auction.SellerId
 			if bidAmount < auction.FirstBid {
 				sendResponse(ApiResponse{404, "error", "Invalid input"}, writer)
 				return
@@ -25,8 +27,8 @@ func addAuctionBid(writer http.ResponseWriter, request *http.Request) {
 		}
 	}
 
-	// Check if the auction exists
-	if !exists {
+	// Check if the auction exists or is self bid
+	if !exists || sellerId == bidderId {
 		sendResponse(ApiResponse{404, "error", "Invalid input"}, writer)
 		return
 	}

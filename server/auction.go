@@ -84,7 +84,7 @@ func updateAuction(writer http.ResponseWriter, request *http.Request) {
 	sendResponse(ApiResponse{404, "error", "Auction not found"}, writer)
 }
 
-// Removes a specific auction by ic
+// Removes a specific auction by id
 func deleteAuction(writer http.ResponseWriter, request *http.Request) {
 	auctionId := toInt(getMuxVariable("auctionId", request))
 

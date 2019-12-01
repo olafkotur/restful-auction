@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -14,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const DEBUG = false
+const DEBUG = true
 
 var auctions []Auction
 var bids []Bid
@@ -37,7 +36,7 @@ func main() {
 
 	// Testing only
 	if DEBUG {
-		serverId = "2"
+		serverId = "0"
 		port = toString(8080 + toInt(serverId))
 		redisUrl = "localhost:6379"
 		url = "http://localhost:" + port
@@ -50,11 +49,12 @@ func main() {
 		DB:       0,
 	})
 
+	// DANGER:
 	// Ensure that the redis db is connected
-	_, err := client.Ping().Result()
-	if err != nil {
-		log.Fatal(err)
-	}
+	// _, err := client.Ping().Result()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	// Add server information to the db
 	client.Set("server"+serverId, url, 0)
