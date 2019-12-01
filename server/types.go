@@ -6,6 +6,11 @@ type ApiResponse struct {
 	Message string `json:"message"`
 }
 
+type PingResponse struct {
+	Status string `json:"status"`
+	Time   int64  `json:"time"`
+}
+
 type Auction struct {
 	Id           int     `json:"id"`
 	Status       string  `json:"status"`
