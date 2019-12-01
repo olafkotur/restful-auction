@@ -5,8 +5,6 @@ import (
 )
 
 func addAuctionBid(writer http.ResponseWriter, request *http.Request) {
-	printRequestInfo(request)
-
 	bidId := assignBidId()
 	auctionId := toInt(getMuxVariable("auctionId", request))
 
@@ -43,13 +41,13 @@ func addAuctionBid(writer http.ResponseWriter, request *http.Request) {
 		}
 	}
 
-	bids = append(bids, Bid{bidId, auctionId, bidAmount, bidderId})
+	bid := Bid{bidId, auctionId, bidAmount, bidderId}
+	bids = append(bids, bid)
+	setSyncData("bids", "add", bid)
 	sendResponse(ApiResponse{200, "Success", "Successful operation"}, writer)
 }
 
 func getBidsByAuctionId(writer http.ResponseWriter, request *http.Request) {
-	printRequestInfo(request)
-
 	var res []Bid
 	auctionId := toInt(getMuxVariable("auctionId", request))
 

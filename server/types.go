@@ -37,3 +37,9 @@ type UserInfo struct {
 	Id       int    `json:"id"`
 	Username string `json:"username"`
 }
+
+type SyncDataInfo struct {
+	Counter int    `json:"counter"`
+	Type    string `json:"type"`
+	Action  string `json:"action"`
+}

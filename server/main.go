@@ -14,12 +14,13 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const DEBUG = true
+const DEBUG = false
 
 var auctions []Auction
 var bids []Bid
 var users []User
 
+var counter int
 var client *redis.Client
 
 func main() {
@@ -31,13 +32,13 @@ func main() {
 
 	// Get server information
 	serverId := os.Getenv("SERVER_ID")
-	port := toString(8080 + toInt(serverId))
+	port := "8080"
 	url := "http://server" + serverId + ":8080"
 
 	// Testing only
 	if DEBUG {
 		serverId = "2"
-		port = "8082"
+		port = toString(8080 + toInt(serverId))
 		redisUrl = "localhost:6379"
 		url = "http://localhost:" + port
 	}
@@ -56,7 +57,7 @@ func main() {
 	}
 
 	// Add server information to the db
-	_ = client.Set("server"+serverId, url, 0)
+	client.Set("server"+serverId, url, 0)
 
 	router := mux.NewRouter().StrictSlash(true)
 
@@ -78,10 +79,14 @@ func main() {
 
 	// Misc
 	router.HandleFunc("/api/docs", getDocumentation).Methods("GET")
-	router.HandleFunc("/api/ping", getPingResponse).Methods("GET")
+	router.HandleFunc("/ping", getPingResponse).Methods("GET")
+	router.HandleFunc("/sync", getSyncData).Methods("GET")
 
-	fmt.Printf("Listening on port %s...\n\n", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	fmt.Printf("Listening on %s...\n\n", url)
+	_ = http.ListenAndServe(":"+port, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		printRequestInfo(request)
+		router.ServeHTTP(writer, request)
+	}))
 }
 
 func getDocumentation(writer http.ResponseWriter, request *http.Request) {
@@ -107,9 +112,11 @@ func getPingResponse(writer http.ResponseWriter, request *http.Request) {
 }
 
 func printRequestInfo(request *http.Request) {
+	if request.URL.RequestURI() == "/ping" {
+		return
+	}
 	fmt.Println("Method: ", request.Method)
 	fmt.Println("URL: ", request.URL)
-	fmt.Println("")
 }
 
 func sendResponse(res interface{}, writer http.ResponseWriter) {

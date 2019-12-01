@@ -9,27 +9,31 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/go-redis/redis/v7"
 )
 
-const DEBUG = true
-const MAX_SERVERS = 2
+const DEBUG = false
 
+var MAX_SERVERS int
 var client *redis.Client
 var servers []ServerInfo
 var serverId int
 
 func main() {
-	// Get redis url from environment variables
+	// Get environment variables
 	var redisUrl string
 	redisHost := os.Getenv("REDIS_HOST")
 	redisPort := os.Getenv("REDIS_PORT")
 	redisUrl = redisHost + ":" + redisPort
+	MAX_SERVERS = toInt(os.Getenv("MAX_SERVERS"))
 
 	// Testing only
 	if DEBUG {
 		redisUrl = "localhost:6379"
+		MAX_SERVERS = 2
 	}
 
 	// Create new instance of redis
@@ -45,15 +49,38 @@ func main() {
 	// Handle reverse proxy
 	proxy := &httputil.ReverseProxy{Director: director}
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		servers = getServerInfo()
+		updateServerInfo()
 
 		// Ensure that target server is active before sending a request
-		alive := getPingResponse(servers[serverId-1])
-		if !alive {
-			fmt.Printf("Target server with id %d is inactive, switching servers\n", serverId)
-			changeTargetServer()
+		alive := false
+		for !alive {
+			alive = getPingResponse(servers[serverId-1])
+			if !alive {
+				fmt.Printf("Target server with id %d is inactive, switching servers\n", serverId)
+				changeTargetServer()
+				time.Sleep(100 * time.Millisecond)
+			}
 		}
+
+		// Update other servers only if data is modified
 		proxy.ServeHTTP(w, r)
+		if r.Method == "POST" || r.Method == "DELETE" {
+			// Send update request to other servers
+			for i := 0; i < MAX_SERVERS; i++ {
+				if serverId == i+1 {
+					fmt.Println("Skipping updating server:", serverId)
+					continue
+				}
+				fmt.Println("Updating server", servers[i].Url+"/sync")
+				res, err := http.Get(servers[i].Url + "/sync")
+				if err != nil {
+					continue
+				}
+				res.Body.Close()
+			}
+		}
+
+		changeTargetServer()
 	})
 
 	fmt.Printf("Listening on port 8080...\n\n")
@@ -62,13 +89,11 @@ func main() {
 
 func director(r *http.Request) {
 	origin, _ := url.Parse(servers[serverId-1].Url)
-	fmt.Println(origin)
 	r.Header.Add("X-Forwarded-Host", r.Host)
 	r.Header.Add("X-Origin-Host", origin.Host)
 	r.URL.Scheme = "http"
 	r.URL.Host = origin.Host
 	fmt.Println("Redirected to:", origin.String())
-	changeTargetServer()
 }
 
 func changeTargetServer() {
@@ -77,33 +102,36 @@ func changeTargetServer() {
 	} else {
 		serverId++
 	}
-
 	fmt.Printf("Set next target server to server: %d\n\n", serverId)
 }
 
-func getServerInfo() (in []ServerInfo) {
-	var info []ServerInfo
-	s1, _ := client.Get("server1").Result()
-	s2, _ := client.Get("server2").Result()
-	info = append(info, ServerInfo{1, s1})
-	info = append(info, ServerInfo{2, s2})
-	return info
+func updateServerInfo() {
+	for i := 0; i < MAX_SERVERS; i++ {
+		url, _ := client.Get("server" + toString(i+1)).Result()
+
+		// Update only if there is a change detected or a new server is discovered
+		if len(servers) >= i+1 && url != servers[i].Url {
+			fmt.Println("Detected change in server, updating:", url)
+			servers[i] = ServerInfo{i + 1, url}
+		} else {
+			fmt.Println("Discovered new server, adding:", url)
+			servers = append(servers, ServerInfo{i + 1, url})
+		}
+	}
 }
 
 func getPingResponse(s ServerInfo) (alive bool) {
-	res, err := http.Get(s.Url + "/api/ping")
+	fmt.Println("Pinging:", s.Url)
+	res, err := http.Get(s.Url + "/ping")
 	if err != nil {
 		fmt.Println("No response from server: ", s.Url)
 		return false
 	}
 
 	var data PingResponse
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println("Bad response from server: ", s.Url)
-		return false
-	}
+	body, _ := ioutil.ReadAll(res.Body)
 	_ = json.Unmarshal(body, &data)
+	res.Body.Close()
 
 	if data.Status != "pong" {
 		fmt.Println("Invalid response from server: ", s.Url)
@@ -111,4 +139,13 @@ func getPingResponse(s ServerInfo) (alive bool) {
 	}
 
 	return true
+}
+
+func toInt(s string) (i int) {
+	res, _ := strconv.Atoi(s)
+	return res
+}
+
+func toString(i int) (s string) {
+	return strconv.Itoa(i)
 }

@@ -6,8 +6,6 @@ import (
 
 // Returns all users
 func getUsers(writer http.ResponseWriter, request *http.Request) {
-	printRequestInfo(request)
-
 	// Return all users omitting password
 	var res []UserInfo
 	for _, user := range users {
@@ -19,7 +17,6 @@ func getUsers(writer http.ResponseWriter, request *http.Request) {
 
 // Creates a new user in the system
 func createUser(writer http.ResponseWriter, request *http.Request) {
-	printRequestInfo(request)
 	userId := assignUserId()
 
 	// Extract data from the request body
@@ -35,14 +32,14 @@ func createUser(writer http.ResponseWriter, request *http.Request) {
 		}
 	}
 
-	users = append(users, User{userId, username, password})
+	user := User{userId, username, password}
+	users = append(users, user)
+	setSyncData("users", "add", user)
 	sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
 }
 
 // Allows the user to login with supplied credentials
 func userLogin(writer http.ResponseWriter, request *http.Request) {
-	printRequestInfo(request)
-
 	// Extract data from the request body
 	_ = request.ParseForm()
 	username := request.Form.Get("username")

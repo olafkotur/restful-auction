@@ -46,12 +46,30 @@ services:
       - 8082:8080
     links:
       - redis
+  
+  server3:
+    container_name: server3
+    image: harbor.scc.lancs.ac.uk/koturo/server:latest
+    restart: unless-stopped
+    environment:
+      - SERVER_ID=3
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+    build:
+      context: server
+    networks:
+      - scc311coursework
+    ports:
+      - 8083:8080
+    links:
+      - redis
 
   load-balancer:
     container_name: load-balancer
     image: harbor.scc.lancs.ac.uk/koturo/load-balancer:latest
     restart: unless-stopped
     environment:
+      - MAX_SERVERS=3
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
     build:
@@ -64,3 +82,4 @@ services:
     - redis
     - server1
     - server2
+    - server3
