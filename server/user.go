@@ -32,10 +32,13 @@ func createUser(writer http.ResponseWriter, request *http.Request) {
 		}
 	}
 
+	// Add user to the user data and update redis counter
 	user := User{userId, username, password}
 	users = append(users, user)
 	setSyncData("users", "add", user)
-	sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
+
+	token := generateToken(user)
+	sendAuthResponse(token, writer)
 }
 
 // Allows the user to login with supplied credentials
@@ -49,7 +52,8 @@ func userLogin(writer http.ResponseWriter, request *http.Request) {
 	for _, user := range users {
 		if username == user.Username {
 			if password == user.Password {
-				sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
+				token := generateToken(user)
+				sendAuthResponse(token, writer)
 				return
 			}
 		}

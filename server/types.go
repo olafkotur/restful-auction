@@ -43,3 +43,8 @@ type SyncDataInfo struct {
 	Type    string `json:"type"`
 	Action  string `json:"action"`
 }
+
+type JwtToken struct {
+	Id       int    `json:"id"`
+	Username string `json:"username"`
+}

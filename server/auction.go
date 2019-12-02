@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"strings"
 )
 
 // Returns all auctions
@@ -12,6 +13,14 @@ func getAuctions(writer http.ResponseWriter, request *http.Request) {
 
 // Adds a new auction
 func addAuction(writer http.ResponseWriter, request *http.Request) {
+	// Authenticate user
+	token := strings.Split(request.Header.Get("Authorization"), "Bearer ")[1]
+	isVerified := authenticateToken(token)
+	if !isVerified {
+		sendResponse(ApiResponse{401, "error", "Unauthorized"}, writer)
+		return
+	}
+
 	// Extract data from the request body
 	_ = request.ParseForm()
 	name := request.Form.Get("name")
@@ -38,6 +47,7 @@ func addAuction(writer http.ResponseWriter, request *http.Request) {
 		}
 	}
 
+	// Add auction to auction data and update redis counter
 	auction := Auction{auctionId, status, name, firstBid, sellerId, reservePrice}
 	auctions = append(auctions, auction)
 	setSyncData("auctions", "add", auction)
@@ -63,6 +73,14 @@ func getAuction(writer http.ResponseWriter, request *http.Request) {
 
 // Updates a specific auction by id
 func updateAuction(writer http.ResponseWriter, request *http.Request) {
+	// Authenticate user
+	token := strings.Split(request.Header.Get("Authorization"), "Bearer ")[1]
+	isVerified := authenticateToken(token)
+	if !isVerified {
+		sendResponse(ApiResponse{401, "error", "Unauthorized"}, writer)
+		return
+	}
+
 	auctionId := toInt(getMuxVariable("auctionId", request))
 
 	// Extract data from the request body
@@ -71,7 +89,7 @@ func updateAuction(writer http.ResponseWriter, request *http.Request) {
 	firstBid := toFloat(request.Form.Get("firstBid"))
 	sellerId := toInt(request.Form.Get("sellerId"))
 
-	// Update auction only if it exists
+	// Update auction and redis counter only if it exists
 	for i, auction := range auctions {
 		if auctionId == auction.Id {
 			auctions[i] = Auction{auction.Id, auction.Status, name, firstBid, sellerId, auction.ReservePrice}
@@ -86,9 +104,17 @@ func updateAuction(writer http.ResponseWriter, request *http.Request) {
 
 // Removes a specific auction by id
 func deleteAuction(writer http.ResponseWriter, request *http.Request) {
+	// Authenticate user
+	token := strings.Split(request.Header.Get("Authorization"), "Bearer ")[1]
+	isVerified := authenticateToken(token)
+	if !isVerified {
+		sendResponse(ApiResponse{401, "error", "Unauthorized"}, writer)
+		return
+	}
+
 	auctionId := toInt(getMuxVariable("auctionId", request))
 
-	// Delete auction only if it exists
+	// Delete auction and update redis counter only if it exists
 	for i, auction := range auctions {
 		if auctionId == auction.Id {
 			auctions = append(auctions[:i], auctions[i+1:]...)

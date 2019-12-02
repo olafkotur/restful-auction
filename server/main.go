@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const DEBUG = true
+const DEBUG = false
 
 var auctions []Auction
 var bids []Bid
@@ -23,38 +23,30 @@ var counter int
 var client *redis.Client
 
 func main() {
-	// Get redis url from environment variables
 	var redisUrl string
 	redisHost := os.Getenv("REDIS_HOST")
 	redisPort := os.Getenv("REDIS_PORT")
 	redisUrl = redisHost + ":" + redisPort
 
 	// Get server information
-	serverId := os.Getenv("SERVER_ID")
 	port := "8080"
-	url := "http://server" + serverId + ":8080"
+	serverId := os.Getenv("SERVER_ID")
+	url := "http://server" + serverId + ":" + port
 
-	// Testing only
+	// DANGER: Debug use only
 	if DEBUG {
-		serverId = "0"
+		serverId = "1"
 		port = toString(8080 + toInt(serverId))
 		redisUrl = "localhost:6379"
 		url = "http://localhost:" + port
 	}
 
-	// Create new instance of redis
-	client = redis.NewClient(&redis.Options{
-		Addr:     redisUrl,
-		Password: "",
-		DB:       0,
-	})
-
-	// DANGER:
-	// Ensure that the redis db is connected
-	// _, err := client.Ping().Result()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	// Create new instance of redis and ensure connection
+	client = redis.NewClient(&redis.Options{Addr: redisUrl})
+	_, err := client.Ping().Result()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Add server information to the db
 	client.Set("server"+serverId, url, 0)
@@ -82,6 +74,7 @@ func main() {
 	router.HandleFunc("/ping", getPingResponse).Methods("GET")
 	router.HandleFunc("/sync", getSyncData).Methods("GET")
 
+	// Attempt to begin serving
 	fmt.Printf("Listening on %s...\n\n", url)
 	_ = http.ListenAndServe(":"+port, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		printRequestInfo(request)
@@ -89,21 +82,13 @@ func main() {
 	}))
 }
 
+// Redirect user to generated postman documentation
 func getDocumentation(writer http.ResponseWriter, request *http.Request) {
-	// Read docs html file
-	bytes, err := ioutil.ReadFile("./docs.html")
-	if err != nil {
-		panic(err)
-	}
-
-	// Send response as html
-	writer.Header().Set("Content-Type", "text/html")
-	_, err = writer.Write(bytes)
-	if err != nil {
-		panic(err)
-	}
+	url := "https://documenter.getpostman.com/view/8555555/SWDzgMiw?version=latest"
+	http.Redirect(writer, request, url, http.StatusSeeOther)
 }
 
+// Respond to a ping request
 func getPingResponse(writer http.ResponseWriter, request *http.Request) {
 	printRequestInfo(request)
 
@@ -111,6 +96,7 @@ func getPingResponse(writer http.ResponseWriter, request *http.Request) {
 	sendResponse(res, writer)
 }
 
+// Outputs methods and url of a request
 func printRequestInfo(request *http.Request) {
 	if request.URL.RequestURI() == "/ping" {
 		return
@@ -119,6 +105,7 @@ func printRequestInfo(request *http.Request) {
 	fmt.Println("URL: ", request.URL)
 }
 
+// Sends any interface using application JSON format
 func sendResponse(res interface{}, writer http.ResponseWriter) {
 	response, _ := json.Marshal(res)
 	writer.Header().Set("Content-Type", "application/json")
@@ -128,10 +115,21 @@ func sendResponse(res interface{}, writer http.ResponseWriter) {
 	}
 }
 
+// Sends JWT auth token using application text format
+func sendAuthResponse(token string, writer http.ResponseWriter) {
+	writer.Header().Set("Content-Type", "application/text")
+	_, err := writer.Write([]byte(token))
+	if err != nil {
+		panic(err)
+	}
+}
+
+// Returns requested mux variable from request URL
 func getMuxVariable(target string, request *http.Request) (v string) {
 	return mux.Vars(request)[target]
 }
 
+// Assigns next available unqiue auction Id
 func assignAuctionId() (key int) {
 	var highestKey int
 	for _, auction := range auctions {
@@ -142,6 +140,7 @@ func assignAuctionId() (key int) {
 	return highestKey + 1
 }
 
+// Assigns next available unqiue bid Id
 func assignBidId() (key int) {
 	var highestKey int
 	for _, bid := range bids {
@@ -152,6 +151,7 @@ func assignBidId() (key int) {
 	return highestKey + 1
 }
 
+// Assigns next available unqiue user Id
 func assignUserId() (key int) {
 	var highestKey int
 	for _, user := range users {

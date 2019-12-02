@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+// Updates redis DB with most recent updated data and increases counter
 func setSyncData(typ, action string, d interface{}) {
 	counter++
 	info, _ := json.Marshal(SyncDataInfo{counter, typ, action})
@@ -14,6 +15,7 @@ func setSyncData(typ, action string, d interface{}) {
 	client.Set("lastRequest", data, 0)
 }
 
+// Attempts to read most recent data from redis and update self counter
 func getSyncData(writer http.ResponseWriter, request *http.Request) {
 	raw, _ := client.Get("syncInfo").Result()
 	var syncInfo SyncDataInfo
@@ -30,24 +32,25 @@ func getSyncData(writer http.ResponseWriter, request *http.Request) {
 	if syncInfo.Type == "auctions" {
 		var data Auction
 		_ = json.Unmarshal([]byte(raw), &data)
-		handleAuction(syncInfo.Action, data)
+		handleSyncAuction(syncInfo.Action, data)
 		counter = syncInfo.Counter
 
 	} else if syncInfo.Type == "bids" {
 		var data Bid
 		_ = json.Unmarshal([]byte(raw), &data)
-		handleBid(syncInfo.Action, data)
+		handleSyncBid(syncInfo.Action, data)
 		counter = syncInfo.Counter
 
 	} else if syncInfo.Type == "users" {
 		var data User
 		_ = json.Unmarshal([]byte(raw), &data)
-		handleUser(syncInfo.Action, data)
+		handleSyncUser(syncInfo.Action, data)
 		counter = syncInfo.Counter
 	}
 }
 
-func handleAuction(action string, data Auction) {
+// Updates auction data based on most recent data in redis
+func handleSyncAuction(action string, data Auction) {
 	fmt.Println("Handling auction data with action:", action)
 	if action == "add" {
 		auctions = append(auctions, Auction{data.Id, data.Status, data.Name, data.FirstBid, data.SellerId, data.ReservePrice})
@@ -66,14 +69,16 @@ func handleAuction(action string, data Auction) {
 	}
 }
 
-func handleBid(action string, data Bid) {
+// Updates bid data based on most recent data in redis
+func handleSyncBid(action string, data Bid) {
 	fmt.Println("Handling auction data with action:", action)
 	if action == "add" {
 		bids = append(bids, Bid{data.Id, data.AuctionId, data.BidAmount, data.BidderId})
 	}
 }
 
-func handleUser(action string, data User) {
+// Updates user data based on most recent data in redis
+func handleSyncUser(action string, data User) {
 	fmt.Println("Handling auction data with action:", action)
 	if action == "add" {
 		users = append(users, User{data.Id, data.Username, data.Password})

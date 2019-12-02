@@ -2,9 +2,18 @@ package main
 
 import (
 	"net/http"
+	"strings"
 )
 
 func addAuctionBid(writer http.ResponseWriter, request *http.Request) {
+	// Authenticate user
+	token := strings.Split(request.Header.Get("Authorization"), "Bearer ")[1]
+	isVerified := authenticateToken(token)
+	if !isVerified {
+		sendResponse(ApiResponse{401, "error", "Unauthorized"}, writer)
+		return
+	}
+
 	bidId := assignBidId()
 	auctionId := toInt(getMuxVariable("auctionId", request))
 
@@ -43,9 +52,11 @@ func addAuctionBid(writer http.ResponseWriter, request *http.Request) {
 		}
 	}
 
+	// Add bid to bid data and update redis counter
 	bid := Bid{bidId, auctionId, bidAmount, bidderId}
 	bids = append(bids, bid)
 	setSyncData("bids", "add", bid)
+
 	sendResponse(ApiResponse{200, "Success", "Successful operation"}, writer)
 }
 
