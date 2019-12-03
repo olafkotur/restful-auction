@@ -1,55 +1,48 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
+// Returns all users
 func getUsers(writer http.ResponseWriter, request *http.Request) {
-	users := []UserInfo{}
-
-	// Fetch all users and add them to the result array
-	keys := client.Keys("user:*").Val()
-	for _, key := range keys {
-		userData := UserInfo{}
-		user, _ := client.Get(key).Result()
-		_ = json.Unmarshal([]byte(user), &userData)
-		users = append(users, userData)
+	// Return all users omitting password
+	var res []UserInfo
+	for _, user := range users {
+		res = append(res, UserInfo{user.Id, user.Username})
 	}
 
-	sendResponse(users, writer)
-	printRequestInfo(request)
+	sendResponse(res, writer)
 }
 
+// Creates a new user in the system
 func createUser(writer http.ResponseWriter, request *http.Request) {
-	userId := assignKeyId("user")
+	userId := assignUserId()
 
 	// Extract data from the request body
 	_ = request.ParseForm()
 	username := request.Form.Get("username")
 	password := request.Form.Get("password")
 
-	// Check if user already exists with that name
-	keys := client.Keys("user:*").Val()
-	for _, key := range keys {
-		userData := User{}
-		user, _ := client.Get(key).Result()
-		_ = json.Unmarshal([]byte(user), &userData)
-		if userData.Username == username {
+	// Check if the username is already taken
+	for _, user := range users {
+		if username == user.Username {
 			sendResponse(ApiResponse{400, "error", "Invalid username/password supplied"}, writer)
 			return
 		}
 	}
 
-	// Create user in the database
-	item, _ := json.Marshal(User{userId, username, password})
-	client.Set("user:"+toString(userId), item, 0)
+	// Add user to the user data and update redis counter
+	hash := generateSignature(password)
+	user := User{userId, username, hash}
+	users = append(users, user)
+	setSyncData("users", "add", user)
 
-	sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
-	printRequestInfo(request)
+	token := generateToken(user)
+	sendAuthResponse(token, writer)
 }
 
+// Allows the user to login with supplied credentials
 func userLogin(writer http.ResponseWriter, request *http.Request) {
 	// Extract data from the request body
 	_ = request.ParseForm()
@@ -57,23 +50,16 @@ func userLogin(writer http.ResponseWriter, request *http.Request) {
 	password := request.Form.Get("password")
 
 	// Check if the credentials match with a user
-	keys := client.Keys("user:*").Val()
-	isLoggedIn := false
-	for _, key := range keys {
-		userData := User{}
-		user, _ := client.Get(key).Result()
-		_ = json.Unmarshal([]byte(user), &userData)
-		if userData.Username == username && userData.Password == password {
-			fmt.Println(userData.Username, username)
-			isLoggedIn = true
+	for _, user := range users {
+		if username == user.Username {
+			hash := generateSignature(password)
+			if hash == user.Password {
+				token := generateToken(user)
+				sendAuthResponse(token, writer)
+				return
+			}
 		}
 	}
 
-	if isLoggedIn {
-		sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
-	} else {
-		sendResponse(ApiResponse{400, "error", "Invalid username/password supplied"}, writer)
-	}
-
-	printRequestInfo(request)
+	sendResponse(ApiResponse{400, "error", "Invalid username/password supplied"}, writer)
 }

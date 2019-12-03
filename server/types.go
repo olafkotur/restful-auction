@@ -6,15 +6,12 @@ type ApiResponse struct {
 	Message string `json:"message"`
 }
 
-type Auction struct {
-	Id       int     `json:"id"`
-	Status   string  `json:"status"`
-	Name     string  `json:"name"`
-	FirstBid float64 `json:"firstBid"`
-	SellerId int     `json:"sellerId"`
+type PingResponse struct {
+	Status string `json:"status"`
+	Time   int64  `json:"time"`
 }
 
-type AuctionWithReserve struct {
+type Auction struct {
 	Id           int     `json:"id"`
 	Status       string  `json:"status"`
 	Name         string  `json:"name"`
@@ -38,5 +35,24 @@ type User struct {
 
 type UserInfo struct {
 	Id       int    `json:"id"`
+	Username string `json:"username"`
+}
+
+type SyncDataInfo struct {
+	Counter           int    `json:"counter"`
+	Type              string `json:"type"`
+	Action            string `json:"action"`
+	PrimaryServerId   string `json:"primaryServerId"`
+	SecondaryServerId string `json:"secondaryServerId"`
+}
+
+type RecoveryData struct {
+	Auctions []Auction `json:"auctions"`
+	Bids     []Bid     `json:"bids"`
+	Users    []User    `json:"users"`
+}
+
+type JwtToken struct {
+	Exp      string `json:"exp"`
 	Username string `json:"username"`
 }

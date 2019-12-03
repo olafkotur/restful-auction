@@ -4,28 +4,6 @@ networks:
   scc311coursework:
 
 services:
-  server:
-    container_name: server
-    image: harbor.scc.lancs.ac.uk/koturo/server:latest
-    restart: unless-stopped
-    build:
-      context: server
-    networks:
-      - scc311coursework
-    ports:
-      - 8080:8080
-
-  load-balancer:
-    container_name: load-balancer
-    image: harbor.scc.lancs.ac.uk/koturo/load-balancer:latest
-    restart: unless-stopped
-    build:
-      context: load-balancer
-    networks:
-      - scc311coursework
-    ports:
-      - 8080:9090
-  
   redis:
     container_name: redis
     image: redis:5.0.6
@@ -34,3 +12,71 @@ services:
       - scc311coursework
     ports:
       - 6379:6379
+
+  server1:
+    container_name: server1
+    image: harbor.scc.lancs.ac.uk/koturo/server:latest
+    restart: unless-stopped
+    environment:
+      - SERVER_ID=1
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+    build:
+      context: server
+    networks:
+      - scc311coursework
+    ports:
+      - 8081:8080
+    links:
+      - redis
+  
+  server2:
+    container_name: server2
+    image: harbor.scc.lancs.ac.uk/koturo/server:latest
+    restart: unless-stopped
+    environment:
+      - SERVER_ID=2
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+    build:
+      context: server
+    networks:
+      - scc311coursework
+    ports:
+      - 8082:8080
+    links:
+      - redis
+  
+  server3:
+    container_name: server3
+    image: harbor.scc.lancs.ac.uk/koturo/server:latest
+    restart: unless-stopped
+    environment:
+      - SERVER_ID=3
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+    build:
+      context: server
+    networks:
+      - scc311coursework
+    ports:
+      - 8083:8080
+    links:
+      - redis
+
+  load-balancer:
+    container_name: load-balancer
+    image: harbor.scc.lancs.ac.uk/koturo/load-balancer:latest
+    restart: unless-stopped
+    environment:
+      - MAX_SERVERS=3
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+    build:
+      context: load-balancer
+    networks:
+      - scc311coursework
+    ports:
+      - 8080:8080
+    links:
+    - redis

@@ -1,98 +1,128 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
+	"strings"
 )
 
+// Returns all auctions
 func getAuctions(writer http.ResponseWriter, request *http.Request) {
-	var res []Auction
-
-	// Fetch all keys from the database and return all auctions
-	keys := client.Keys("auction:*").Val()
-	for _, key := range keys {
-		data := Auction{}
-		auction, _ := client.Get(key).Result()
-		_ = json.Unmarshal([]byte(auction), &data)
-		res = append(res, Auction{data.Id, data.Status, data.Name, data.FirstBid, data.SellerId})
-	}
-
+	res := auctions
 	sendResponse(res, writer)
-	printRequestInfo(request)
 }
 
+// Adds a new auction
 func addAuction(writer http.ResponseWriter, request *http.Request) {
-	auctionId := assignKeyId("auction")
-	status := "available"
+	// Authenticate user
+	token := strings.Split(request.Header.Get("Authorization"), "Bearer ")[1]
+	isVerified := authenticateToken(token)
+	if !isVerified {
+		sendResponse(ApiResponse{401, "error", "Unauthorized"}, writer)
+		return
+	}
 
 	// Extract data from the request body
 	_ = request.ParseForm()
 	name := request.Form.Get("name")
 	firstBid := toFloat(request.Form.Get("firstBid"))
 	sellerId := toInt(request.Form.Get("sellerId"))
-	reservePrice := toFloat(request.Form.Get("reservePrice"))
+	reservePriceS := request.Form.Get("reservePrice")
 
-	// Check if auction already exists, add to database if not
-	previousData := Auction{}
-	previous, _ := client.Get("auction:" + toString(auctionId)).Result()
-	_ = json.Unmarshal([]byte(previous), &previousData)
-	if previousData.Id != auctionId {
-		item, _ := json.Marshal(AuctionWithReserve{auctionId, status, name, firstBid, sellerId, reservePrice})
-		client.Set("auction:"+toString(auctionId), item, 0)
-		sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
+	// Safety in case no reserve price is given
+	var reservePrice float64
+	if reservePriceS != "" {
+		reservePrice = toFloat(reservePriceS)
 	} else {
-		sendResponse(ApiResponse{405, "error", "Invalid input"}, writer)
+		reservePrice = 0
 	}
 
-	printRequestInfo(request)
+	auctionId := assignAuctionId()
+	status := "available"
+
+	// Check if auction already exists
+	for _, auction := range auctions {
+		if auctionId == auction.Id {
+			sendResponse(ApiResponse{405, "error", "Invalid input"}, writer)
+			return
+		}
+	}
+
+	// Add auction to auction data and update redis counter
+	auction := Auction{auctionId, status, name, firstBid, sellerId, reservePrice}
+	auctions = append(auctions, auction)
+	setSyncData("auctions", "add", auction)
+
+	res := ApiResponse{200, "success", "Successful operation"}
+	sendResponse(res, writer)
 }
 
+// Returns a specific auction by id
 func getAuction(writer http.ResponseWriter, request *http.Request) {
-	auctionId := getMuxVariable("auctionId", request)
+	auctionId := toInt(getMuxVariable("auctionId", request))
 
-	// Fetch auction from the db
-	data := Auction{}
-	auction, _ := client.Get("auction:" + auctionId).Result()
-	_ = json.Unmarshal([]byte(auction), &data)
-	res := Auction{data.Id, data.Status, data.Name, data.FirstBid, data.SellerId}
+	// Fetch auction by id
+	var res Auction
+	for _, auction := range auctions {
+		if auctionId == auction.Id {
+			res = auction
+		}
+	}
 
 	sendResponse(res, writer)
-	printRequestInfo(request)
 }
 
+// Updates a specific auction by id
 func updateAuction(writer http.ResponseWriter, request *http.Request) {
-	auctionId := getMuxVariable("auctionId", request)
+	// Authenticate user
+	token := strings.Split(request.Header.Get("Authorization"), "Bearer ")[1]
+	isVerified := authenticateToken(token)
+	if !isVerified {
+		sendResponse(ApiResponse{401, "error", "Unauthorized"}, writer)
+		return
+	}
 
-	// Extract data from the POST
+	auctionId := toInt(getMuxVariable("auctionId", request))
+
+	// Extract data from the request body
 	_ = request.ParseForm()
 	name := request.Form.Get("name")
 	firstBid := toFloat(request.Form.Get("firstBid"))
 	sellerId := toInt(request.Form.Get("sellerId"))
 
-	// Get exisiting data from db
-	previousData := Auction{}
-	previous, _ := client.Get("auction:" + auctionId).Result()
-	_ = json.Unmarshal([]byte(previous), &previousData)
-
-	// Update record if it exists
-	if previousData.Id == toInt(auctionId) {
-		item, _ := json.Marshal(Auction{previousData.Id, previousData.Status, name, firstBid, sellerId})
-		client.Set("auction:"+auctionId, item, 0)
-		sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
-	} else {
-		sendResponse(ApiResponse{404, "error", "Auction not found"}, writer)
+	// Update auction and redis counter only if it exists
+	for i, auction := range auctions {
+		if auctionId == auction.Id {
+			auctions[i] = Auction{auction.Id, auction.Status, name, firstBid, sellerId, auction.ReservePrice}
+			setSyncData("auctions", "update", auctions[i])
+			sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
+			return
+		}
 	}
+
+	sendResponse(ApiResponse{404, "error", "Auction not found"}, writer)
 }
 
+// Removes a specific auction by id
 func deleteAuction(writer http.ResponseWriter, request *http.Request) {
-	auctionId := getMuxVariable("auctionId", request)
-
-	// Delete auction from database
-	res, _ := client.Del("auction:" + auctionId).Result()
-	if res != 0 {
-		sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
-	} else {
-		sendResponse(ApiResponse{404, "error", "Auction not found"}, writer)
+	// Authenticate user
+	token := strings.Split(request.Header.Get("Authorization"), "Bearer ")[1]
+	isVerified := authenticateToken(token)
+	if !isVerified {
+		sendResponse(ApiResponse{401, "error", "Unauthorized"}, writer)
+		return
 	}
-	printRequestInfo(request)
+
+	auctionId := toInt(getMuxVariable("auctionId", request))
+
+	// Delete auction and update redis counter only if it exists
+	for i, auction := range auctions {
+		if auctionId == auction.Id {
+			auctions = append(auctions[:i], auctions[i+1:]...)
+			setSyncData("auctions", "remove", auction)
+			sendResponse(ApiResponse{200, "success", "Successful operation"}, writer)
+			return
+		}
+	}
+
+	sendResponse(ApiResponse{404, "error", "Auction not found"}, writer)
 }
