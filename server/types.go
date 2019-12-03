@@ -39,12 +39,20 @@ type UserInfo struct {
 }
 
 type SyncDataInfo struct {
-	Counter int    `json:"counter"`
-	Type    string `json:"type"`
-	Action  string `json:"action"`
+	Counter           int    `json:"counter"`
+	Type              string `json:"type"`
+	Action            string `json:"action"`
+	PrimaryServerId   string `json:"primaryServerId"`
+	SecondaryServerId string `json:"secondaryServerId"`
+}
+
+type RecoveryData struct {
+	Auctions []Auction `json:"auctions"`
+	Bids     []Bid     `json:"bids"`
+	Users    []User    `json:"users"`
 }
 
 type JwtToken struct {
-	Id       int    `json:"id"`
+	Exp      string `json:"exp"`
 	Username string `json:"username"`
 }

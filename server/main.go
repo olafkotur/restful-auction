@@ -19,26 +19,24 @@ var auctions []Auction
 var bids []Bid
 var users []User
 
+var serverId string
 var counter int
 var client *redis.Client
 
 func main() {
-	var redisUrl string
+	serverId = os.Getenv("SERVER_ID")
 	redisHost := os.Getenv("REDIS_HOST")
 	redisPort := os.Getenv("REDIS_PORT")
-	redisUrl = redisHost + ":" + redisPort
-
-	// Get server information
+	redisUrl := redisHost + ":" + redisPort
+	url := "http://server" + serverId
 	port := "8080"
-	serverId := os.Getenv("SERVER_ID")
-	url := "http://server" + serverId + ":" + port
 
 	// DANGER: Debug use only
 	if DEBUG {
-		serverId = "1"
-		port = toString(8080 + toInt(serverId))
+		serverId = "2"
+		port = "808" + serverId
 		redisUrl = "localhost:6379"
-		url = "http://localhost:" + port
+		url = "http://localhost"
 	}
 
 	// Create new instance of redis and ensure connection
@@ -48,8 +46,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Add server information to the db
-	client.Set("server"+serverId, url, 0)
+	// Set server information
+	client.Set("server:"+serverId, url+":"+port, 0)
+	attemptDataRecovery()
 
 	router := mux.NewRouter().StrictSlash(true)
 
@@ -73,9 +72,10 @@ func main() {
 	router.HandleFunc("/api/docs", getDocumentation).Methods("GET")
 	router.HandleFunc("/ping", getPingResponse).Methods("GET")
 	router.HandleFunc("/sync", getSyncData).Methods("GET")
+	router.HandleFunc("/recover", getRecoveryData).Methods("GET")
 
 	// Attempt to begin serving
-	fmt.Printf("Listening on %s...\n\n", url)
+	fmt.Println("Listening with id:", serverId)
 	_ = http.ListenAndServe(":"+port, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		printRequestInfo(request)
 		router.ServeHTTP(writer, request)

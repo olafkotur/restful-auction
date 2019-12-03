@@ -20,7 +20,7 @@ const DEBUG = false
 var MAX_SERVERS int
 var client *redis.Client
 var servers []ServerInfo
-var serverId int
+var serverId = 1
 
 func main() {
 	// Get environment variables
@@ -29,22 +29,20 @@ func main() {
 	redisPort := os.Getenv("REDIS_PORT")
 	redisUrl = redisHost + ":" + redisPort
 	MAX_SERVERS = toInt(os.Getenv("MAX_SERVERS"))
+	port := "8080"
 
-	// Testing only
+	// DANGER: Debug use only
 	if DEBUG {
 		redisUrl = "localhost:6379"
 		MAX_SERVERS = 2
 	}
 
-	// Create new instance of redis
-	client = redis.NewClient(&redis.Options{
-		Addr:     redisUrl,
-		Password: "",
-		DB:       0,
-	})
-
-	// Get active server info
-	serverId = 1
+	// Create new instance of redis and ensure connection
+	client = redis.NewClient(&redis.Options{Addr: redisUrl})
+	_, err := client.Ping().Result()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Handle reverse proxy
 	proxy := &httputil.ReverseProxy{Director: director}
@@ -83,8 +81,8 @@ func main() {
 		changeTargetServer()
 	})
 
-	fmt.Printf("Listening on port 8080...\n\n")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Printf("Listening on port %s...\n\n", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 func director(r *http.Request) {
@@ -107,7 +105,7 @@ func changeTargetServer() {
 
 func updateServerInfo() {
 	for i := 0; i < MAX_SERVERS; i++ {
-		url, _ := client.Get("server" + toString(i+1)).Result()
+		url, _ := client.Get("server:" + toString(i+1)).Result()
 
 		// Update only if there is a change detected or a new server is discovered
 		if len(servers) >= i+1 && url != servers[i].Url {

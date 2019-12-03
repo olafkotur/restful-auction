@@ -3,13 +3,22 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 )
 
 // Updates redis DB with most recent updated data and increases counter
 func setSyncData(typ, action string, d interface{}) {
+	// Get previous sync info
+	raw, _ := client.Get("syncInfo").Result()
+	var syncInfo SyncDataInfo
+	_ = json.Unmarshal([]byte(raw), &syncInfo)
+
+	// Set new sync info
 	counter++
-	info, _ := json.Marshal(SyncDataInfo{counter, typ, action})
+	fmt.Println("Setting:", counter, typ, action, serverId, syncInfo.PrimaryServerId)
+	info, _ := json.Marshal(SyncDataInfo{counter, typ, action, serverId, syncInfo.PrimaryServerId})
 	data, _ := json.Marshal(d)
 	client.Set("syncInfo", info, 0)
 	client.Set("lastRequest", data, 0)
@@ -83,4 +92,49 @@ func handleSyncUser(action string, data User) {
 	if action == "add" {
 		users = append(users, User{data.Id, data.Username, data.Password})
 	}
+}
+
+// Sends copy of server data
+func getRecoveryData(writer http.ResponseWriter, request *http.Request) {
+	res := RecoveryData{auctions, bids, users}
+	sendResponse(res, writer)
+}
+
+func attemptDataRecovery() {
+	raw, _ := client.Get("syncInfo").Result()
+	var syncInfo SyncDataInfo
+	_ = json.Unmarshal([]byte(raw), &syncInfo)
+
+	// Check if server is up to date
+	if counter >= syncInfo.Counter {
+		return
+	}
+	fmt.Println("Data loss detected, attempting to recover")
+
+	// Use second best server if the primary is current
+	recoverId := syncInfo.PrimaryServerId
+	fmt.Println(recoverId, serverId)
+	if recoverId == serverId {
+		recoverId = syncInfo.SecondaryServerId
+		fmt.Println("Using second best recovery server")
+	}
+
+	// Attempt to get data from the most up to date server
+	url, _ := client.Get("server:" + recoverId).Result()
+	res, err := http.Get(url + "/recover")
+	if err != nil {
+		fmt.Println(err)
+		log.Fatal("Could not recover from data loss, aborting")
+	}
+
+	// Save all data
+	var data RecoveryData
+	body, _ := ioutil.ReadAll(res.Body)
+	_ = json.Unmarshal(body, &data)
+	auctions = data.Auctions
+	bids = data.Bids
+	users = data.Users
+
+	fmt.Println("Successfully recovered from data loss, qualified to serve")
+	res.Body.Close()
 }
