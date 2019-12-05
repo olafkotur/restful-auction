@@ -1,12 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v7"
@@ -15,29 +14,18 @@ import (
 
 const DEBUG = false
 
+var client *redis.Client
+var counter int
+var serverId = 1
+
 var auctions []Auction
 var bids []Bid
 var users []User
 
-var serverId string
-var counter int
-var client *redis.Client
-
 func main() {
-	serverId = os.Getenv("SERVER_ID")
-	redisHost := os.Getenv("REDIS_HOST")
-	redisPort := os.Getenv("REDIS_PORT")
-	redisUrl := redisHost + ":" + redisPort
-	url := "http://server" + serverId
+	redisUrl := "redis:6379"
+	host, _ := os.Hostname()
 	port := "8080"
-
-	// DANGER: Debug use only
-	if DEBUG {
-		serverId = "2"
-		port = "808" + serverId
-		redisUrl = "localhost:6379"
-		url = "http://localhost"
-	}
 
 	// Create new instance of redis and ensure connection
 	client = redis.NewClient(&redis.Options{Addr: redisUrl})
@@ -46,8 +34,26 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Assign server id
+	keys, _ := client.Keys("server:*").Result()
+	for _, key := range keys {
+		id := toInt(strings.Split(key, ":")[1])
+		if id >= serverId {
+			serverId = id + 1
+		}
+	}
+
+	if DEBUG { // DEBUG: Testing only
+		port = toString(8080 + serverId)
+	}
+
+	// Add port if it does not exist
+	if !strings.Contains(host, ":") {
+		host += ":" + port
+	}
+
 	// Set server information
-	client.Set("server:"+serverId, url+":"+port, 0)
+	client.Set("server:"+toString(serverId), "http://"+host, 0)
 	attemptDataRecovery()
 
 	router := mux.NewRouter().StrictSlash(true)
@@ -75,7 +81,7 @@ func main() {
 	router.HandleFunc("/recover", getRecoveryData).Methods("GET")
 
 	// Attempt to begin serving
-	fmt.Println("Listening with id:", serverId)
+	fmt.Printf("Listening at: %s\n", host)
 	_ = http.ListenAndServe(":"+port, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		printRequestInfo(request)
 		router.ServeHTTP(writer, request)
@@ -94,84 +100,4 @@ func getPingResponse(writer http.ResponseWriter, request *http.Request) {
 
 	res := PingResponse{"pong", time.Now().Unix()}
 	sendResponse(res, writer)
-}
-
-// Outputs methods and url of a request
-func printRequestInfo(request *http.Request) {
-	if request.URL.RequestURI() == "/ping" {
-		return
-	}
-	fmt.Println("Method: ", request.Method)
-	fmt.Println("URL: ", request.URL)
-}
-
-// Sends any interface using application JSON format
-func sendResponse(res interface{}, writer http.ResponseWriter) {
-	response, _ := json.Marshal(res)
-	writer.Header().Set("Content-Type", "application/json")
-	_, err := writer.Write(response)
-	if err != nil {
-		panic(err)
-	}
-}
-
-// Sends JWT auth token using application text format
-func sendAuthResponse(token string, writer http.ResponseWriter) {
-	writer.Header().Set("Content-Type", "application/text")
-	_, err := writer.Write([]byte(token))
-	if err != nil {
-		panic(err)
-	}
-}
-
-// Returns requested mux variable from request URL
-func getMuxVariable(target string, request *http.Request) (v string) {
-	return mux.Vars(request)[target]
-}
-
-// Assigns next available unqiue auction Id
-func assignAuctionId() (key int) {
-	var highestKey int
-	for _, auction := range auctions {
-		if auction.Id > highestKey {
-			highestKey = auction.Id
-		}
-	}
-	return highestKey + 1
-}
-
-// Assigns next available unqiue bid Id
-func assignBidId() (key int) {
-	var highestKey int
-	for _, bid := range bids {
-		if bid.Id > highestKey {
-			highestKey = bid.Id
-		}
-	}
-	return highestKey + 1
-}
-
-// Assigns next available unqiue user Id
-func assignUserId() (key int) {
-	var highestKey int
-	for _, user := range users {
-		if user.Id > highestKey {
-			highestKey = user.Id
-		}
-	}
-	return highestKey + 1
-}
-
-func toString(i int) (s string) {
-	return strconv.Itoa(i)
-}
-
-func toInt(s string) (i int) {
-	res, _ := strconv.Atoi(s)
-	return res
-}
-
-func toFloat(s string) (f float64) {
-	res, _ := strconv.ParseFloat(s, 64)
-	return res
 }

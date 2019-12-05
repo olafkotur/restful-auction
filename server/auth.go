@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+const salt = "N3DxzwcD4zFE"
+const expThreshold = 10 * time.Minute
+
 // Return JWT header using HS256 algorithm
 func generateHeader() (h string) {
 	header := `{"alg": "HS256", "typ": "JWT"}`
@@ -18,7 +21,7 @@ func generateHeader() (h string) {
 
 // Return JWT payload with user id and username
 func generatePayload(username string) (p string) {
-	exp := int(time.Now().Add(10 * time.Minute).Unix())
+	exp := int(time.Now().Add(expThreshold).Unix())
 	payload := `{"exp": "` + toString(exp) + `", "username": "` + username + `"}`
 	encoded := b64.StdEncoding.EncodeToString([]byte(payload))
 	return strings.TrimRight(encoded, "=")
@@ -27,7 +30,7 @@ func generatePayload(username string) (p string) {
 // Return JWT signature using SHA256
 func generateSignature(secret string) (s string) {
 	hasher := sha256.New()
-	_, _ = hasher.Write([]byte(secret))
+	_, _ = hasher.Write([]byte(secret + salt))
 	hash := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 	return strings.TrimRight(hash, "=")
 }
