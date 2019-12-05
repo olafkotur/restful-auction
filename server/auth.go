@@ -10,7 +10,7 @@ import (
 )
 
 const salt = "N3DxzwcD4zFE"
-const expThreshold = 1000 * time.Minute
+const expThreshold = 10 * time.Minute
 
 // Return JWT header using HS256 algorithm
 func generateHeader() (h string) {

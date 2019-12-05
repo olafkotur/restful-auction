@@ -13,71 +13,30 @@ services:
     ports:
       - 6379:6379
 
-  server1:
-    container_name: server1
+  server:
+    container_name: server
     image: harbor.scc.lancs.ac.uk/koturo/server:latest
     restart: unless-stopped
     depends_on: 
       - redis
-    hostname: server1:8080
+    hostname: server:8080
     build:
       context: server
     networks:
       - scc311coursework
     ports:
-      - 8081:8080
-    links:
-      - redis
-  
-  server2:
-    container_name: server2
-    image: harbor.scc.lancs.ac.uk/koturo/server:latest
-    restart: unless-stopped
-    depends_on: 
-      - redis
-    hostname: server2:8080
-    build:
-      context: server
-    networks:
-      - scc311coursework
-    ports:
-      - 8082:8080
-    links:
-      - redis
-  
-  server3:
-    container_name: server3
-    image: harbor.scc.lancs.ac.uk/koturo/server:latest
-    restart: unless-stopped
-    depends_on: 
-      - redis
-    hostname: server3:8080
-    build:
-      context: server
-    networks:
-      - scc311coursework
-    ports:
-      - 8083:8080
-    links:
-      - redis
+      - 8080:8080
 
   load-balancer:
     container_name: load-balancer
     image: harbor.scc.lancs.ac.uk/koturo/load-balancer:latest
     restart: unless-stopped
     hostname: load-balancer:8080
-    depends_on: 
+    depends_on:
       - redis
-      - server1
-      - server2
-      - server3
-    environment:
-      - MAX_SERVERS=3
     build:
       context: load-balancer
     networks:
       - scc311coursework
     ports:
-      - 8080:8080
-    links:
-    - redis
+      - 9090:8080
