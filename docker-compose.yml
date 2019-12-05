@@ -17,10 +17,9 @@ services:
     container_name: server1
     image: harbor.scc.lancs.ac.uk/koturo/server:latest
     restart: unless-stopped
-    environment:
-      - SERVER_ID=1
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
+    depends_on: 
+      - redis
+    hostname: server1:8080
     build:
       context: server
     networks:
@@ -34,10 +33,9 @@ services:
     container_name: server2
     image: harbor.scc.lancs.ac.uk/koturo/server:latest
     restart: unless-stopped
-    environment:
-      - SERVER_ID=2
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
+    depends_on: 
+      - redis
+    hostname: server2:8080
     build:
       context: server
     networks:
@@ -51,10 +49,9 @@ services:
     container_name: server3
     image: harbor.scc.lancs.ac.uk/koturo/server:latest
     restart: unless-stopped
-    environment:
-      - SERVER_ID=3
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
+    depends_on: 
+      - redis
+    hostname: server3:8080
     build:
       context: server
     networks:
@@ -68,10 +65,14 @@ services:
     container_name: load-balancer
     image: harbor.scc.lancs.ac.uk/koturo/load-balancer:latest
     restart: unless-stopped
+    hostname: load-balancer:8080
+    depends_on: 
+      - redis
+      - server1
+      - server2
+      - server3
     environment:
       - MAX_SERVERS=3
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
     build:
       context: load-balancer
     networks:

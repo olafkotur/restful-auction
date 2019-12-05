@@ -42,8 +42,8 @@ type SyncDataInfo struct {
 	Counter           int    `json:"counter"`
 	Type              string `json:"type"`
 	Action            string `json:"action"`
-	PrimaryServerId   string `json:"primaryServerId"`
-	SecondaryServerId string `json:"secondaryServerId"`
+	PrimaryServerId   int    `json:"primaryServerId"`
+	SecondaryServerId int    `json:"secondaryServerId"`
 }
 
 type RecoveryData struct {

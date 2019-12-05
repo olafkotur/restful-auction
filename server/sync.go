@@ -17,7 +17,6 @@ func setSyncData(typ, action string, d interface{}) {
 
 	// Set new sync info
 	counter++
-	fmt.Println("Setting:", counter, typ, action, serverId, syncInfo.PrimaryServerId)
 	info, _ := json.Marshal(SyncDataInfo{counter, typ, action, serverId, syncInfo.PrimaryServerId})
 	data, _ := json.Marshal(d)
 	client.Set("syncInfo", info, 0)
@@ -31,7 +30,6 @@ func getSyncData(writer http.ResponseWriter, request *http.Request) {
 	_ = json.Unmarshal([]byte(raw), &syncInfo)
 
 	// Check if server is up to date
-	fmt.Println("Saved counter:", counter, "Actual counter:", syncInfo.Counter)
 	if counter >= syncInfo.Counter {
 		fmt.Println("Data is up to date, skipping sync")
 		return
@@ -60,7 +58,7 @@ func getSyncData(writer http.ResponseWriter, request *http.Request) {
 
 // Updates auction data based on most recent data in redis
 func handleSyncAuction(action string, data Auction) {
-	fmt.Println("Handling auction data with action:", action)
+	log.Println("Received request to update self with data:", action)
 	if action == "add" {
 		auctions = append(auctions, Auction{data.Id, data.Status, data.Name, data.FirstBid, data.SellerId, data.ReservePrice})
 	} else if action == "remove" {
@@ -80,7 +78,7 @@ func handleSyncAuction(action string, data Auction) {
 
 // Updates bid data based on most recent data in redis
 func handleSyncBid(action string, data Bid) {
-	fmt.Println("Handling auction data with action:", action)
+	log.Println("Received request to update self with data:", action)
 	if action == "add" {
 		bids = append(bids, Bid{data.Id, data.AuctionId, data.BidAmount, data.BidderId})
 	}
@@ -88,7 +86,7 @@ func handleSyncBid(action string, data Bid) {
 
 // Updates user data based on most recent data in redis
 func handleSyncUser(action string, data User) {
-	fmt.Println("Handling auction data with action:", action)
+	log.Println("Received request to update self with data:", action)
 	if action == "add" {
 		users = append(users, User{data.Id, data.Username, data.Password})
 	}
@@ -100,6 +98,7 @@ func getRecoveryData(writer http.ResponseWriter, request *http.Request) {
 	sendResponse(res, writer)
 }
 
+// Detects data recovery and attempts to recover
 func attemptDataRecovery() {
 	raw, _ := client.Get("syncInfo").Result()
 	var syncInfo SyncDataInfo
@@ -109,21 +108,19 @@ func attemptDataRecovery() {
 	if counter >= syncInfo.Counter {
 		return
 	}
-	fmt.Println("Data loss detected, attempting to recover")
+	log.Println("Data loss detected, attempting to recover")
 
 	// Use second best server if the primary is current
 	recoverId := syncInfo.PrimaryServerId
-	fmt.Println(recoverId, serverId)
 	if recoverId == serverId {
 		recoverId = syncInfo.SecondaryServerId
-		fmt.Println("Using second best recovery server")
+		log.Println("Using second best recovery server")
 	}
 
 	// Attempt to get data from the most up to date server
-	url, _ := client.Get("server:" + recoverId).Result()
+	url, _ := client.Get("server:" + toString(recoverId)).Result()
 	res, err := http.Get(url + "/recover")
 	if err != nil {
-		fmt.Println(err)
 		log.Fatal("Could not recover from data loss, aborting")
 	}
 
@@ -135,6 +132,6 @@ func attemptDataRecovery() {
 	bids = data.Bids
 	users = data.Users
 
-	fmt.Println("Successfully recovered from data loss, qualified to serve")
+	log.Println("Successfully recovered from data loss, qualified to serve")
 	res.Body.Close()
 }
